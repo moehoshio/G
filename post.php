@@ -20,7 +20,7 @@ $this->need('components/header.php');
             <?php endif; ?>
             <div>
                 <h1 itemprop="name headline"><?php $this->title() ?></h1>
-                <p><?php echo G::getSemanticDate($this->created); ?> · <?php $this->category(' · '); ?> · <?php echo G::getPostView($this); ?>次阅读</p>
+                <p><?php echo G::getSemanticDate($this->created); ?> · <?php $this->category(' · '); ?> · <?php echo G::getPostView($this); ?>次閱讀</p>
             </div>
         </div>
         <div class="post-content PAP-content" itemprop="articleBody">

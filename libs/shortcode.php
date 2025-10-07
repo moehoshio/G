@@ -28,7 +28,7 @@ function shortcode_jump_button($atts, $content = '')
             ';
         }
     } else {
-        return '<span>id无效QAQ</span>';
+        return '<span>id無效QAQ</span>';
     }
 }
 
@@ -112,7 +112,7 @@ add_shortcode('bili', 'shortcode_bili');
 function shortcode_collapse($atts, $content = '')
 {
     $args = shortcode_atts(array(
-        'title' => '折叠框'
+        'title' => '折疊框'
     ), $atts);
 
     return '<div class="collapse-box" data-collapsed="true"><div class="collapse-title" onclick="collapseController(this)"><p>' . $args['title'] . '</p></div><div class="collapse-content"><div class="collapse-content-inner">' . G::analyzeContent($content) . '</div></div></div>';

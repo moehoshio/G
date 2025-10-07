@@ -37,7 +37,7 @@ $this->need('components/header.php');
 					</li>
 					", 0); ?>
 				<?php else: ?>
-					<p>请启用Link插件</p>
+					<p>請啟用Link插件</p>
 				<?php endif; ?>
 		    </div>
         </article>

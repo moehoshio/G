@@ -97,7 +97,7 @@ if (isset($_POST['DYLM'])) {
             </div>
             <div id="header-content-right">
                 <nav>
-                    <a href="<?php $this->options->siteUrl() ?>" <?php if ($this->is('index')) : ?> class="nav-focus"<?php endif; ?>>首页</a>
+                    <a href="<?php $this->options->siteUrl() ?>" <?php if ($this->is('index')) : ?> class="nav-focus"<?php endif; ?>>首頁</a>
                     <?php if ($this->options->enableIndexPage): ?>
                         <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is('archive') or $this->is('post')) : ?> class="nav-focus"<?php endif; ?>>文章</a>
                     <?php endif; ?>
@@ -112,7 +112,7 @@ if (isset($_POST['DYLM'])) {
                         <?php endif; ?>
                     <?php endwhile; ?>
                     <?php if ($this->options->enableHeaderSearch): ?>
-                        <a href="#" class="search-form-input">搜索</a>
+                        <a href="#" class="search-form-input">搜尋</a>
                     <?php endif; ?>
                 </nav>
             </div>

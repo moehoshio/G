@@ -92,14 +92,14 @@
                                 $len--;
                             }
                         } 
-                        else echo '无最新回复';
+                        else echo '無最新回覆';
 
                         echo '</div>';
                         break;
                     case 'randomPost':
                         $data = G::randomArticle($w->len);
                         echo '<div class="widget widget-random-post">';
-                        echo '  <h3>初见</h3>';
+                        echo '  <h3>初見</h3>';
                         foreach($data as $item) {
                             echo '
                             <a href="'.$item->permalink.'">
@@ -119,7 +119,7 @@
         }
         else
         {
-            echo '<script>alert("widgets配置出错");</script>';
+            echo '<script>alert("widgets配置出錯");</script>';
         }
     }
     else

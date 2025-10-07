@@ -184,7 +184,7 @@ class G
             return Helper::options()->icp;
         if (isset(self::$advanceConfig["customICP"]))
             return self::$advanceConfig["customICP"];
-        return '还没有备案噢';
+        return '還沒有備案噢';
     }
 
     /**
@@ -263,7 +263,7 @@ class G
      */
     public static function getModifiedDate($modified, $created)
     {
-        return $modified == $created ? "还没有修改过" : "最后修改于" . self::getSemanticDate($modified);
+        return $modified == $created ? "還沒有修改過" : "最後修改於" . self::getSemanticDate($modified);
     }
 
     /**
@@ -280,9 +280,9 @@ class G
         if ($sub < 60)
             return $sub . "秒前";
         else if ($sub < 3600)
-            return (int)($sub / 60) . "分钟前";
+            return (int)($sub / 60) . "分鐘前";
         else if ($sub < 86400)
-            return (int)($sub / 3600) . "小时前";
+            return (int)($sub / 3600) . "小時前";
         else
             return (int)($sub / 86400) . "天前";
     }
@@ -541,7 +541,7 @@ class G
                     return htmlspecialchars($val['title']);
                 }
             } else
-                return '标题获取失败';
+                return '標題獲取失敗';
         }
     }
 

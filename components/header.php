@@ -21,10 +21,10 @@ if (isset($_POST['DYLM'])) {
     <link rel='dns-prefetch' href='//s.w.org'>
     <link rel="apple-touch-icon-precomposed" href="<?php $this->options->favicon(); ?>">
     <title><?php $this->archiveTitle(array(
-            'category' => _t('分类 %s 下的文章'),
-            'search' => _t('包含关键字 %s 的文章'),
-            'tag' => _t('标签 %s 下的文章'),
-            'author' => _t('%s 发布的文章')
+            'category' => _t('分類 %s 下的文章'),
+            'search' => _t('包含關鍵字 %s 的文章'),
+            'tag' => _t('標籤 %s 下的文章'),
+            'author' => _t('%s 發布的文章')
         ), '', ' | '); ?><?php $this->options->title(); ?></title>
     <style>
         /* 输出自定义主题色 */

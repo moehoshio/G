@@ -196,7 +196,7 @@ class G
     {
         if (isset(self::$advanceConfig["customSponsorText"]))
             return self::$advanceConfig["customSponsorText"];
-        return "支持 ☕";
+        return "支援 ☕";
     }
 
     /**
@@ -263,7 +263,7 @@ class G
      */
     public static function getModifiedDate($modified, $created)
     {
-        return $modified == $created ? "還沒有修改過" : "最後修改於" . self::getSemanticDate($modified);
+        return $modified == $created ? "未修改過" : "最後修改於" . self::getSemanticDate($modified);
     }
 
     /**

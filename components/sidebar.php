@@ -16,11 +16,11 @@
                 </div>
                 <div class="reviews">
                     <p><?php $stat->publishedCommentsNum() ?></p>
-                    <span>评论</span>
+                    <span>留言</span>
                 </div>
                 <div class="cats">
                     <p><?php $stat->categoriesNum() ?></p>
-                    <span>分类</span>
+                    <span>分類</span>
                 </div>
             </div>
         </div>

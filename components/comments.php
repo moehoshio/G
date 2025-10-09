@@ -125,16 +125,16 @@ $randomPlaceholder = $placeholders[array_rand($placeholders)];
                     <?php else: ?>
                         <!-- 要求输入名字、邮箱、网址 -->
                         <div class="comments-Input">
-                            <input type="text" name="author" class="text" size="35" value="<?php $this->remember('author'); ?>" placeholder="🙌用户名*"/>
-                            <input type="text" name="mail" class="text" size="35" value="<?php $this->remember('mail'); ?>" placeholder="📫邮箱*"/>
-                            <input type="text" name="url" class="text" size="35" value="<?php $this->remember('url'); ?>" placeholder="🔗博客链接"/>
+                            <input type="text" name="author" class="text" size="35" value="<?php $this->remember('author'); ?>" placeholder="🙌名稱*"/>
+                            <input type="text" name="mail" class="text" size="35" value="<?php $this->remember('mail'); ?>" placeholder="📫郵箱"/>
+                            <input type="text" name="url" class="text" size="35" value="<?php $this->remember('url'); ?>" placeholder="🔗鏈接"/>
                             <input type="hidden" name="receiveMail" id="receiveMail" value="yes"/>
                         </div>
                     <?php endif; ?>
                     <!-- 输入要回复的内容 -->
                     <div id="comments-textarea-wrap">
                     <textarea id="comments-textarea" name="text" placeholder="<?php echo htmlspecialchars($randomPlaceholder); ?>" onfocus="closeOwO()"><?php $this->remember('text'); ?></textarea>
-                        <input type="submit" value="发送" class="submit" id="comment-submit"/>
+                        <input type="submit" value="送出" class="submit" id="comment-submit"/>
                         <span id="OwO-logo" onclick="toggleOwO()">(QwQ)</span>
                         <span class="cancel-comment-reply"><?php $comments->cancelReply(); ?></span>
                         <?php $this->need('components/OwO.php'); ?>

@@ -75,7 +75,7 @@ let lazyPic = (element, observe) => {
       observe.unobserve(element.target)
     })
     .catch((error) => {
-      console.log('图片加载失败', error)
+      console.log('图片載入失败', error)
     })
 }
 
@@ -321,7 +321,7 @@ let ajaxComment = () => {
     if (status) {
       document.getElementById('comments-textarea').value = ''
       replyTo = ''
-      showToast('发送成功')
+      showToast('成功送出')
     }
     bindButton()
   }
@@ -352,7 +352,7 @@ let ajaxComment = () => {
           let msg = newComment.querySelector('.container')
             ? newComment.querySelector('.container').innerText
             : newComment.childNodes[0].childNodes[0].childNodes[0].innerText
-          showToast('评论失败，' + msg)
+          showToast('留言失敗，' + msg)
         }
       })
       .catch((error) => {
@@ -361,7 +361,7 @@ let ajaxComment = () => {
         let msg = newComment.querySelector('.container')
           ? newComment.querySelector('.container').innerText
           : newComment.childNodes[0].childNodes[0].childNodes[0].innerText
-        showToast('评论失败，' + msg.replaceAll('<br>', ''))
+        showToast('留言失敗，' + msg.replaceAll('<br>', ''))
       })
     return false
   }
@@ -490,11 +490,11 @@ let sendLike = () => {
     if (re.test(res)) {
       let counter = btn.childNodes[3]
       if (parseInt(res) == parseInt(counter.innerHTML))
-        showToast('已经点过赞咯')
-      else showToast('点赞成功')
+        showToast('已經贊過咯～')
+      else showToast('點贊成功')
       counter.innerHTML = res
       counter.parentNode.childNodes[1].innerHTML = '😍'
-    } else showToast('出了点小问题')
+    } else showToast('出了點小問題')
   })
 }
 
@@ -506,7 +506,7 @@ let DYLM = throttle((url) => {
   Ajax.post(url, 'DYLM=add').then((res) => {
     if (res === 'success') {
       cnt.innerText = parseInt(cnt.innerText) + 1
-      showToast('感谢喜欢~')
+      showToast('傾心您❤️～')
     } else {
       showToast(res)
     }

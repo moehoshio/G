@@ -12,15 +12,15 @@
                 <?php Typecho_Widget::widget('Widget_Stat')->to($stat); ?>
                 <div class="articles">
                     <p><?php $stat->publishedPostsNum() ?></p>
-                    <span>文章</span>
+                    <span><?php GI18n::e('sidebar.articles'); ?></span>
                 </div>
                 <div class="reviews">
                     <p><?php $stat->publishedCommentsNum() ?></p>
-                    <span>评论</span>
+                    <span><?php GI18n::e('sidebar.comments'); ?></span>
                 </div>
                 <div class="cats">
                     <p><?php $stat->categoriesNum() ?></p>
-                    <span>分类</span>
+                    <span><?php GI18n::e('sidebar.categories'); ?></span>
                 </div>
             </div>
         </div>

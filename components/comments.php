@@ -70,40 +70,10 @@ function displayComments($comments) {
 }
 ?>
 
-<?php $placeholders = [
- "🌸 把心事吹进风里，也落在这一格里。",
- "🌈 让一句话，为今天上色。",
- "✨ 你的字，会发光。",
- "🍃 轻轻落下一片叶，说给我们听。",
- "🌙 夜色里的小小心愿？",
- "☁️ 把云捏成一封留言。",
- "🐾 留下脚印，让故事有路。",
- "🪄 一敲键盘，星星就掉下来。",
- "🎈 把快乐绑在字尾。",
- "🌟 你的一句，会成为路标。",
- "📮 投递一则心情明信片。",
- "🫧 泡泡般的灵感，戳一下试试。",
- "💌 对世界说一句悄悄话。",
- "🌻 让温暖在这里开花。",
- "🍯 甜一点也没关系。",
- "🦋 放飞一只字的蝴蝶。",
- "🌊 把心事推向岸边。",
- "🎵 让句子有点旋律。",
- "🌧️ 下点小雨，让文字长出芽。",
- "🗺️ 用一句话画一张地图。",
- "📎 夹好你的灵感，不让它走。",
- "🍃 把叹息折成纸飞机。",
- "🫶 你的回音很重要。",
- "🔥 把热情点到这里。",
- "🍀 今天抽到的幸运签是？",
- "🎨 涂一笔属于你的颜色。",
- "🕊️ 让温柔先到达。",
- "🔮 在这里占卜你的灵感。",
- "🧸 放一点可爱在字里。",
- "🎐 让风替你挂上声音。",
- "🔖 给此刻打一个可爱书签。",
- "📖 写下今天的小注脚"
-];
+<?php $placeholders = [];
+for ($i = 1; $i <= 20; $i++) {
+    $placeholders[] = GI18n::t('comment.placeholder.' . $i);
+}
 $randomPlaceholder = $placeholders[array_rand($placeholders)];
 ?>
 
@@ -115,7 +85,7 @@ $randomPlaceholder = $placeholders[array_rand($placeholders)];
         <?php endif; ?>
         <div id="<?php $this->respondId(); ?>">
             <div id="comments-form">
-                <h3>评论</h3>
+                <h3><?php GI18n::e('comment.title'); ?></h3>
                 <form method="post" action="<?php $this->commentUrl() ?>" id="comment_form">
                     <!-- 如果当前用户已经登录 -->
                     <?php if ($this->user->hasLogin()): ?>
@@ -125,16 +95,16 @@ $randomPlaceholder = $placeholders[array_rand($placeholders)];
                     <?php else: ?>
                         <!-- 要求输入名字、邮箱、网址 -->
                         <div class="comments-Input">
-                            <input type="text" name="author" class="text" size="35" value="<?php $this->remember('author'); ?>" placeholder="🙌用户名*"/>
-                            <input type="text" name="mail" class="text" size="35" value="<?php $this->remember('mail'); ?>" placeholder="📫邮箱*"/>
-                            <input type="text" name="url" class="text" size="35" value="<?php $this->remember('url'); ?>" placeholder="🔗博客链接"/>
+                            <input type="text" name="author" class="text" size="35" value="<?php $this->remember('author'); ?>" placeholder="<?php GI18n::e('comment.username'); ?>"/>
+                            <input type="text" name="mail" class="text" size="35" value="<?php $this->remember('mail'); ?>" placeholder="<?php GI18n::e('comment.email'); ?>"/>
+                            <input type="text" name="url" class="text" size="35" value="<?php $this->remember('url'); ?>" placeholder="<?php GI18n::e('comment.website'); ?>"/>
                             <input type="hidden" name="receiveMail" id="receiveMail" value="yes"/>
                         </div>
                     <?php endif; ?>
                     <!-- 输入要回复的内容 -->
                     <div id="comments-textarea-wrap">
                     <textarea id="comments-textarea" name="text" placeholder="<?php echo htmlspecialchars($randomPlaceholder); ?>" onfocus="closeOwO()"><?php $this->remember('text'); ?></textarea>
-                        <input type="submit" value="发送" class="submit" id="comment-submit"/>
+                        <input type="submit" value="<?php GI18n::e('comment.submit'); ?>" class="submit" id="comment-submit"/>
                         <span id="OwO-logo" onclick="toggleOwO()">(QwQ)</span>
                         <span class="cancel-comment-reply"><?php $comments->cancelReply(); ?></span>
                         <?php $this->need('components/OwO.php'); ?>

@@ -196,7 +196,7 @@ class G
     {
         if (isset(self::$advanceConfig["customSponsorText"]))
             return self::$advanceConfig["customSponsorText"];
-        return "支持 ☕";
+        return GI18n::t('post.sponsor');
     }
 
     /**
@@ -263,7 +263,7 @@ class G
      */
     public static function getModifiedDate($modified, $created)
     {
-        return $modified == $created ? "还没有修改过" : "最后修改于" . self::getSemanticDate($modified);
+        return $modified == $created ? GI18n::t('post.not_modified') : GI18n::t('post.last_modified') . self::getSemanticDate($modified);
     }
 
     /**
@@ -278,13 +278,13 @@ class G
         $sub = $now - $date;
 
         if ($sub < 60)
-            return $sub . "秒前";
+            return GI18n::t('date.seconds_ago', $sub);
         else if ($sub < 3600)
-            return (int)($sub / 60) . "分钟前";
+            return GI18n::t('date.minutes_ago', (int)($sub / 60));
         else if ($sub < 86400)
-            return (int)($sub / 3600) . "小时前";
+            return GI18n::t('date.hours_ago', (int)($sub / 3600));
         else
-            return (int)($sub / 86400) . "天前";
+            return GI18n::t('date.days_ago', (int)($sub / 86400));
     }
 
     /**

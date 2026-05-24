@@ -25,7 +25,7 @@ $this->need('components/header.php');
                 <?php if ($tags->have()): ?>
                     <?php while ($tags->next()): ?>
                         <li>
-                            <a href="<?php $tags->permalink(); ?>" rel="tag" class="size-<?php $tags->split(5, 10, 20, 30); ?>" title="<?php $tags->count(); ?> 个话题"><?php $tags->name(); ?></a>
+                            <a href="<?php $tags->permalink(); ?>" rel="tag" class="size-<?php $tags->split(5, 10, 20, 30); ?>" title="<?php echo GI18n::t('archive.topics', $tags->count()); ?>"><?php $tags->name(); ?></a>
                         </li>
                     <?php endwhile; ?>
                 <?php endif; ?>

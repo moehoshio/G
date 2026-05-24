@@ -1770,9 +1770,9 @@ span#toggleOwO {
 }
 #widgets .widget-photo {
   background-repeat: no-repeat;
-  background-size: cover;
-  -webkit-background-size: cover;
-  -o-background-size: cover;
+  background-size: contain;
+  -webkit-background-size: contain;
+  -o-background-size: contain;
   background-position: center center;
   position: relative;
 }
@@ -1799,6 +1799,7 @@ span#toggleOwO {
   position: absolute;
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 #widgets .category-list .category-content {
   display: flex;

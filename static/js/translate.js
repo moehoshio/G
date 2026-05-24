@@ -32,6 +32,9 @@
       var xhr = new XMLHttpRequest()
       xhr.open('POST', url, true)
       xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+      // Hard ceiling so the `translating` flag can never stay true forever
+      // if the API hangs. MyMemory normally responds in <2s; 20s is generous.
+      xhr.timeout = 20000
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status === 200 || xhr.status === 304) {
@@ -43,6 +46,9 @@
       }
       xhr.onerror = function () {
         reject('Network error')
+      }
+      xhr.ontimeout = function () {
+        reject('Request timed out')
       }
       xhr.send(data)
     })

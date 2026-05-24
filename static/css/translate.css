@@ -59,7 +59,7 @@
 /* Dark mode support */
 [title="dark"]:not([disabled]) ~ * .content-lang-selector,
 .dark .content-lang-selector {
-    background: rgba(30, 30, 30, 0.8);
+    background: rgba(44, 42, 42, 0.75);
 }
 
 [title="dark"]:not([disabled]) ~ * .content-lang-select,

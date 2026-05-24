@@ -69,6 +69,19 @@ footer {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+#widgets .widget-recent-comment {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+#widgets .widget-recent-comment:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 .profile-content i {
     background: linear-gradient(135deg, rgba(52, 50, 50, 0.8) 0%, rgba(40, 40, 50, 0.9) 100%);
 }
@@ -143,4 +156,3 @@ html::-webkit-scrollbar-thumb {
 ::-moz-selection {
     background: rgba(102, 126, 234, 0.4);
 }
-

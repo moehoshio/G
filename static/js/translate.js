@@ -25,6 +25,45 @@
   let translating = false
 
   /**
+   * Self-contained POST request helper (no external dependencies)
+   */
+  function postRequest(url, data) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest()
+      xhr.open('POST', url, true)
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200 || xhr.status === 304) {
+            resolve(xhr.responseText)
+          } else {
+            reject(xhr.responseText)
+          }
+        }
+      }
+      xhr.onerror = function () {
+        reject('Network error')
+      }
+      xhr.send(data)
+    })
+  }
+
+  /**
+   * Show notification message (uses showToast if available, falls back to console)
+   */
+  function notify(msg) {
+    try {
+      if (typeof showToast === 'function') {
+        showToast(msg)
+      } else if (window.showToast && typeof window.showToast === 'function') {
+        window.showToast(msg)
+      }
+    } catch (e) {
+      // silent fallback
+    }
+  }
+
+  /**
    * Detect user's preferred language from browser
    */
   function detectBrowserLang() {
@@ -185,7 +224,7 @@
     if (translating) return
     currentLang = targetLang
 
-    const contentEl = document.querySelector('.post-content.PAP-content, #page-content.PAP-content')
+    var contentEl = document.querySelector('.post-content.PAP-content, #page-content.PAP-content')
     if (!contentEl) return
 
     // If target is "show original" or same as source language, restore original
@@ -196,8 +235,8 @@
     }
 
     // Check cache
-    const hash = hashContent(originalContent)
-    const cached = getCachedTranslation(hash, targetLang)
+    var hash = hashContent(originalContent)
+    var cached = getCachedTranslation(hash, targetLang)
     if (cached) {
       contentEl.innerHTML = cached
       reinitContent()
@@ -208,34 +247,39 @@
     translating = true
     if (loadingEl) loadingEl.style.display = 'inline'
 
-    const textContent = contentEl.innerHTML
-
-    Ajax.post(
-      window.G_CONFIG.themeUrl + 'libs/translate.php',
-      'text=' + encodeURIComponent(textContent) +
+    var textContent = contentEl.innerHTML
+    var url = window.G_CONFIG.themeUrl + 'libs/translate.php'
+    var body = 'text=' + encodeURIComponent(textContent) +
       '&source=' + encodeURIComponent(sourceLang) +
       '&target=' + encodeURIComponent(targetLang)
-    ).then(function (response) {
-      translating = false
-      if (loadingEl) loadingEl.style.display = 'none'
 
-      try {
-        const data = JSON.parse(response)
-        if (data.translated) {
-          contentEl.innerHTML = data.translated
-          setCachedTranslation(hash, targetLang, data.translated)
-          reinitContent()
-        } else if (data.error) {
-          showToast(data.error)
+    try {
+      postRequest(url, body).then(function (response) {
+        translating = false
+        if (loadingEl) loadingEl.style.display = 'none'
+
+        try {
+          var data = JSON.parse(response)
+          if (data.translated) {
+            contentEl.innerHTML = data.translated
+            setCachedTranslation(hash, targetLang, data.translated)
+            reinitContent()
+          } else if (data.error) {
+            notify(data.error)
+          }
+        } catch (e) {
+          notify('Translation failed')
         }
-      } catch (e) {
-        showToast('Translation failed')
-      }
-    }).catch(function () {
+      }).catch(function () {
+        translating = false
+        if (loadingEl) loadingEl.style.display = 'none'
+        notify('Translation request failed')
+      })
+    } catch (e) {
       translating = false
       if (loadingEl) loadingEl.style.display = 'none'
-      showToast('Translation request failed')
-    })
+      notify('Translation request failed')
+    }
   }
 
   /**

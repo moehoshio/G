@@ -129,20 +129,18 @@
     select.id = 'content-lang-select'
     select.className = 'content-lang-select'
 
-    // Add source language option (original)
+    // Add "Show Original" option first
     const origOption = document.createElement('option')
-    origOption.value = sourceLang
-    origOption.textContent = SUPPORTED_LANGS[sourceLang] || sourceLang
+    origOption.value = '__original__'
+    origOption.textContent = '📄 ' + getOriginalLabel()
     select.appendChild(origOption)
 
-    // Add other language options
+    // Add all language options
     Object.keys(SUPPORTED_LANGS).forEach(function (lang) {
-      if (lang !== sourceLang) {
-        const option = document.createElement('option')
-        option.value = lang
-        option.textContent = SUPPORTED_LANGS[lang]
-        select.appendChild(option)
-      }
+      const option = document.createElement('option')
+      option.value = lang
+      option.textContent = SUPPORTED_LANGS[lang]
+      select.appendChild(option)
     })
 
     // Set current selection
@@ -169,6 +167,18 @@
   }
 
   /**
+   * Get label for "Show Original" option based on source language
+   */
+  function getOriginalLabel() {
+    var labels = {
+      'zh-CN': '显示原文',
+      'zh-TW': '顯示原文',
+      'en': 'Original',
+    }
+    return labels[sourceLang] || '原文'
+  }
+
+  /**
    * Translate content to target language
    */
   function translateContent(targetLang, loadingEl) {
@@ -178,8 +188,8 @@
     const contentEl = document.querySelector('.post-content.PAP-content, #page-content.PAP-content')
     if (!contentEl) return
 
-    // If target is source language, restore original
-    if (targetLang === sourceLang) {
+    // If target is "show original" or same as source language, restore original
+    if (targetLang === '__original__' || targetLang === sourceLang) {
       contentEl.innerHTML = originalContent
       reinitContent()
       return
@@ -287,7 +297,7 @@
 
     // Determine target language
     const savedLang = getSavedLang()
-    if (savedLang && SUPPORTED_LANGS[savedLang]) {
+    if (savedLang && (savedLang === '__original__' || SUPPORTED_LANGS[savedLang])) {
       currentLang = savedLang
     } else {
       currentLang = detectBrowserLang()
@@ -300,8 +310,8 @@
       createSelector(articleEl)
     }
 
-    // Auto-translate if needed
-    if (currentLang !== sourceLang) {
+    // Auto-translate if needed (not for original or source language)
+    if (currentLang !== '__original__' && currentLang !== sourceLang) {
       const loadingEl = document.getElementById('content-lang-loading')
       translateContent(currentLang, loadingEl)
     }

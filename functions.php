@@ -3,7 +3,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 
 require_once("libs/G.class.php");
 require_once("libs/GEditor.class.php");
+require_once("libs/I18n.class.php");
 G::init();
+GI18n::init();
 Typecho_Plugin::factory('Widget_Abstract_Contents')->excerptEx = array('GEditor', 'reply2see');
 Typecho_Plugin::factory('Widget_Abstract_Contents')->contentEx = array('GEditor', 'reply2see');
 Typecho_Plugin::factory('admin/write-post.php')->bottom = array('GEditor', 'addButton');
@@ -22,11 +24,11 @@ function hasBackup($db) {
  * 备份完成提示
  */
 function backupNotice($msg, $refresh = true) {
-    $content = $msg.''.($refresh ? '，即将自动刷新' : '');
+    $content = $msg.''.($refresh ? GI18n::t('backup.auto_refresh') : '');
     if ($refresh) {
         $url = Helper::options()->adminUrl.'options-theme.php';
         $content .= '
-            <a href="'.$url.'">手动刷新</a>
+            <a href="'.$url.'">'.GI18n::t('backup.manual_refresh').'</a>
             <script language="JavaScript">window.setTimeout("location=\''.$url.'\'", 2500);</script>
         ';
     }
@@ -45,7 +47,7 @@ function makeBackup($db, $hasBackup) {
     
     $rows = $db->query($query);
     
-    return ['msg' => $hasBackup ? '备份已经成功更新' : '备份成功', 'refresh' => true];
+    return ['msg' => $hasBackup ? GI18n::t('backup.updated') : GI18n::t('backup.created'), 'refresh' => true];
 }
 
 /**
@@ -53,13 +55,13 @@ function makeBackup($db, $hasBackup) {
  */
 function restoreBackup($db, $hasBackup) {
     if (!$hasBackup) 
-        return ['msg' => '没有模板备份数据，恢复不了哦！', 'refresh' => false];
+        return ['msg' => GI18n::t('backup.no_data_restore'), 'refresh' => false];
     
     $backupConfig = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:'.G::$themeBackup))['value'];
     $update = $db->update('table.options')->rows(array('value' => $backupConfig))->where('name = ?', 'theme:G');
     $updateRows = $db->query($update);
 
-    return ['msg' => '恢复成功', 'refresh' => true];
+    return ['msg' => GI18n::t('backup.restored'), 'refresh' => true];
 }
 
 /**
@@ -67,12 +69,12 @@ function restoreBackup($db, $hasBackup) {
  */
 function deleteBackup($db, $hasBackup) {
     if (!$hasBackup) 
-        return ['msg' => '没有模板备份数据哦', 'refresh' => false];
+        return ['msg' => GI18n::t('backup.no_data_delete'), 'refresh' => false];
 
     $delete = $db->delete('table.options')->where('name = ?', 'theme:'.G::$themeBackup);
     $deletedRows = $db->query($delete);
     
-    return ['msg' => '删除成功', 'refresh' => true];
+    return ['msg' => GI18n::t('backup.deleted'), 'refresh' => true];
 }
 
 /**
@@ -84,14 +86,14 @@ function backup() {
     if (isset($_POST['type'])) {
         $result = [];
         switch($_POST['type']) {
-            case '创建备份':
-            case '更新备份':
+            case GI18n::t('backup.create'):
+            case GI18n::t('backup.update'):
                 $result = makeBackup($db, $hasBackup);
                 break;
-            case '恢复备份':
+            case GI18n::t('backup.restore'):
                 $result = restoreBackup($db, $hasBackup);
                 break;
-            case '删除备份':
+            case GI18n::t('backup.delete'):
                 $result = deleteBackup($db, $hasBackup);
                 break;
             default:
@@ -104,11 +106,11 @@ function backup() {
     echo '
         <div id="backup">
             <form class="protected Data-backup" action="?'.G::$themeBackup.'" method="post">
-                <h4>数据备份</h4>
-                <p style="opacity: 0.5">'.($hasBackup ? '当前已有备份' : '当前暂无备份').'，你可以选择</p>
-                <input type="submit" name="type" class="btn btn-s" value="'.($hasBackup ? '更新备份' : '创建备份').'" />&nbsp;&nbsp;
-                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="恢复备份" />&nbsp;&nbsp;' : '').'
-                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="删除备份" />' : '').'
+                <h4>'.GI18n::t('backup.title').'</h4>
+                <p style="opacity: 0.5">'.($hasBackup ? GI18n::t('backup.has_backup') : GI18n::t('backup.no_backup')).GI18n::t('backup.choose').'</p>
+                <input type="submit" name="type" class="btn btn-s" value="'.($hasBackup ? GI18n::t('backup.update') : GI18n::t('backup.create')).'" />&nbsp;&nbsp;
+                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="'.GI18n::t('backup.restore').'" />&nbsp;&nbsp;' : '').'
+                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="'.GI18n::t('backup.delete').'" />' : '').'
             </form>
         </div>
     ';
@@ -117,156 +119,162 @@ function backup() {
 function themeConfig($form)
 {
     echo "<link rel='stylesheet' href='".G::staticUrl('static/css/Admin/S.min.css')."'/>";
-    echo "<h2>G主题设置</h2>";
+    echo "<h2>".GI18n::t('config.title')."</h2>";
 
-    $favicon = new Typecho_Widget_Helper_Form_Element_Text('favicon', null, null, _t('站点 LOGO 地址'), _t('在这里填入一个图片 URL 地址, 以在网站标题前加上一个 LOGO'));
+    $lang = new Typecho_Widget_Helper_Form_Element_Select('lang', array_merge(
+        ['' => GI18n::t('config.auto_detect')],
+        GI18n::$supportedLangs
+    ), '', _t(GI18n::t('config.lang')), _t(GI18n::t('config.lang_desc')));
+    $form->addInput($lang);
+
+    $favicon = new Typecho_Widget_Helper_Form_Element_Text('favicon', null, null, _t(GI18n::t('config.favicon')), _t(GI18n::t('config.favicon_desc')));
     $form->addInput($favicon);
 
-    $buildYear = new Typecho_Widget_Helper_Form_Element_Text('buildYear', null, date('Y'), _t('建站年份'), _t('什么时候开始建站的呀'));
+    $buildYear = new Typecho_Widget_Helper_Form_Element_Text('buildYear', null, date('Y'), _t(GI18n::t('config.build_year')), _t(GI18n::t('config.build_year_desc')));
     $form->addInput($buildYear);
 
-    $cdn = new Typecho_Widget_Helper_Form_Element_Text('cdn', null, null, _t('是否开启静态资源cdn加速'), _t("填写加速域名或者jsdelivr或者sourcestorage，留空则使用本地文件</br>注意: 新版本刚刚发布时，可能CDN不会及时更新"));
+    $cdn = new Typecho_Widget_Helper_Form_Element_Text('cdn', null, null, _t(GI18n::t('config.cdn')), _t(GI18n::t('config.cdn_desc')));
     $form->addInput($cdn);
 
-    $icp = new Typecho_Widget_Helper_Form_Element_Text('icp', null, null, _t('ICP备案号'), _t('没有可以不填哟'));
+    $icp = new Typecho_Widget_Helper_Form_Element_Text('icp', null, null, _t(GI18n::t('config.icp')), _t(GI18n::t('config.icp_desc')));
     $form->addInput($icp);
 
-    $icpUrl = new Typecho_Widget_Helper_Form_Element_Text('icpUrl', null, 'https://beian.miit.gov.cn', _t('备案号指向链接'), _t('默认指向工信部'));
+    $icpUrl = new Typecho_Widget_Helper_Form_Element_Text('icpUrl', null, 'https://beian.miit.gov.cn', _t(GI18n::t('config.icp_url')), _t(GI18n::t('config.icp_url_desc')));
     $form->addInput($icpUrl);
 
-    $background = new Typecho_Widget_Helper_Form_Element_Text('background', null, null, _t('背景图片'), _t('可填颜色代码或者图片url'));
+    $background = new Typecho_Widget_Helper_Form_Element_Text('background', null, null, _t(GI18n::t('config.background')), _t(GI18n::t('config.background_desc')));
     $form->addInput($background);
 
     $repeatBackground = new Typecho_Widget_Helper_Form_Element_Radio('repeatBackground', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '0', _t('重复元素背景图片'), _t('默认关闭'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.repeat_bg')), _t(GI18n::t('config.repeat_bg_desc')));
     $form->addInput($repeatBackground);
 
-    $themeColor = new Typecho_Widget_Helper_Form_Element_Text('themeColor', null, '#07F', _t('主题色'), _t('一般在链接、按钮的颜色中体现'));
+    $themeColor = new Typecho_Widget_Helper_Form_Element_Text('themeColor', null, '#07F', _t(GI18n::t('config.theme_color')), _t(GI18n::t('config.theme_color_desc')));
     $form->addInput($themeColor);
 
-    $headerColor = new Typecho_Widget_Helper_Form_Element_Text('headerColor', null, '#6A6A6A', _t('头部色'), _t('想要一朵绿帽子不？'));
+    $headerColor = new Typecho_Widget_Helper_Form_Element_Text('headerColor', null, '#6A6A6A', _t(GI18n::t('config.header_color')), _t(GI18n::t('config.header_color_desc')));
     $form->addInput($headerColor);
 
-    $themeRadius = new Typecho_Widget_Helper_Form_Element_Text('themeRadius', null, '30px', _t('主题圆角'), _t('圆还是方，由你来定'));
+    $themeRadius = new Typecho_Widget_Helper_Form_Element_Text('themeRadius', null, '30px', _t(GI18n::t('config.theme_radius')), _t(GI18n::t('config.theme_radius_desc')));
     $form->addInput($themeRadius);
 
-    $defaultBanner = new Typecho_Widget_Helper_Form_Element_Text('defaultBanner', null, null, _t('默认头图'), _t('填入图片API时，可以使用{random}来替换生成一个随机字符串以达到随机图片得效果'));
+    $defaultBanner = new Typecho_Widget_Helper_Form_Element_Text('defaultBanner', null, null, _t(GI18n::t('config.default_banner')), _t(GI18n::t('config.default_banner_desc')));
     $form->addInput($defaultBanner);
 
-    $profileAvatar = new Typecho_Widget_Helper_Form_Element_Text('profileAvatar', null, null, _t('侧边栏头像'), _t('https://...'));
+    $profileAvatar = new Typecho_Widget_Helper_Form_Element_Text('profileAvatar', null, null, _t(GI18n::t('config.profile_avatar')), _t('https://...'));
     $form->addInput($profileAvatar);
 
-    $profileBG = new Typecho_Widget_Helper_Form_Element_Text('profileBG', null, null, _t('侧边栏背景'), _t('https://...'));
+    $profileBG = new Typecho_Widget_Helper_Form_Element_Text('profileBG', null, null, _t(GI18n::t('config.profile_bg')), _t('https://...'));
     $form->addInput($profileBG);
 
-    $profileDes = new Typecho_Widget_Helper_Form_Element_Text('profileDes', null, null, _t('侧边栏简介'), _t('尽量简洁'));
+    $profileDes = new Typecho_Widget_Helper_Form_Element_Text('profileDes', null, null, _t(GI18n::t('config.profile_des')), _t(GI18n::t('config.profile_des_desc')));
     $form->addInput($profileDes);
 
-    $profilePhoto = new Typecho_Widget_Helper_Form_Element_Text('profilePhoto', null, null, _t('侧边栏小相片'), _t('https://'));
+    $profilePhoto = new Typecho_Widget_Helper_Form_Element_Text('profilePhoto', null, null, _t(GI18n::t('config.profile_photo')), _t('https://'));
     $form->addInput($profilePhoto);
 
-    $profileVideo = new Typecho_Widget_Helper_Form_Element_Text('profileVideo', null, null, _t('侧边栏小视频'), _t('https://'));
+    $profileVideo = new Typecho_Widget_Helper_Form_Element_Text('profileVideo', null, null, _t(GI18n::t('config.profile_video')), _t('https://'));
     $form->addInput($profileVideo);
 
-    $profilePhotoDes = new Typecho_Widget_Helper_Form_Element_Text('profilePhotoDes', null, null, _t('侧边栏图片描述'), _t('关于图片/视频的简短描述'));
+    $profilePhotoDes = new Typecho_Widget_Helper_Form_Element_Text('profilePhotoDes', null, null, _t(GI18n::t('config.profile_photo_des')), _t(GI18n::t('config.profile_photo_des_desc')));
     $form->addInput($profilePhotoDes);
 
-    $footerLOGO = new Typecho_Widget_Helper_Form_Element_Text('footerLOGO', null, null, _t('底部左侧logo'), _t('填写logo图片链接，用,分割'));
+    $footerLOGO = new Typecho_Widget_Helper_Form_Element_Text('footerLOGO', null, null, _t(GI18n::t('config.footer_logo')), _t(GI18n::t('config.footer_logo_desc')));
     $form->addInput($footerLOGO);
 
-    $sponsorIMG = new Typecho_Widget_Helper_Form_Element_Text('sponsorIMG', null, null, _t('赞助二维码图片'), _t('填写后会在文章底部添加一个赞助按钮'));
+    $sponsorIMG = new Typecho_Widget_Helper_Form_Element_Text('sponsorIMG', null, null, _t(GI18n::t('config.sponsor_img')), _t(GI18n::t('config.sponsor_img_desc')));
     $form->addInput($sponsorIMG);
 
-    $headerBackground = new Typecho_Widget_Helper_Form_Element_Text('headerBackground', null, null, _t('头部背景图'), _t('填写后会在站点头部添加一个半透明的背景图'));
+    $headerBackground = new Typecho_Widget_Helper_Form_Element_Text('headerBackground', null, null, _t(GI18n::t('config.header_bg')), _t(GI18n::t('config.header_bg_desc')));
     $form->addInput($headerBackground);
 
-    $autoNightSpan = new Typecho_Widget_Helper_Form_Element_Text('autoNightSpan', null, '23-6', _t('自动夜间模式时间段'), _t('24小时制，当前晚上x点到第二天早上y点视为夜间，需要自动开启夜间模式，例: 23-6'));
+    $autoNightSpan = new Typecho_Widget_Helper_Form_Element_Text('autoNightSpan', null, '23-6', _t(GI18n::t('config.auto_night_span')), _t(GI18n::t('config.auto_night_span_desc')));
     $form->addInput($autoNightSpan);
 
     $commentType = new Typecho_Widget_Helper_Form_Element_Radio('commentType', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '1', _t('评论展示开关'), _t('默认开启'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.comment_switch')), _t(GI18n::t('config.comment_switch_desc')));
     $form->addInput($commentType);
 
     $autoNightMode = new Typecho_Widget_Helper_Form_Element_Radio('autoNightMode', array(
-        '3' => _t('跟随系统'),
-        '2' => _t('自定义时间段'),
-        '1' => _t('同时开启'),
-        '0' => _t('关闭')
-    ), '3', _t('自动夜间模式控制模式'), _t('默认为跟随系统'));
+        '3' => _t(GI18n::t('config.follow_system')),
+        '2' => _t(GI18n::t('config.custom_time')),
+        '1' => _t(GI18n::t('config.both_enabled')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '3', _t(GI18n::t('config.auto_night_mode')), _t(GI18n::t('config.auto_night_mode_desc')));
     $form->addInput($autoNightMode);
 
     $enableDefaultTOC = new Typecho_Widget_Helper_Form_Element_Radio('enableDefaultTOC', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '0', _t('文章目录是否默认开启'), _t('默认否'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_toc')), _t(GI18n::t('config.enable_toc_desc')));
     $form->addInput($enableDefaultTOC);
 
     $enableUPYUNLOGO = new Typecho_Widget_Helper_Form_Element_Radio('enableUPYUNLOGO', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '0', _t('是否开启又拍云联盟图标展示'), _t('默认关闭'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_upyun')), _t(GI18n::t('config.enable_upyun_desc')));
     $form->addInput($enableUPYUNLOGO);
 
     $themeShadow = new Typecho_Widget_Helper_Form_Element_Radio('themeShadow', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '1', _t('是否开启主题阴影'), _t('默认开启'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.theme_shadow')), _t(GI18n::t('config.theme_shadow_desc')));
     $form->addInput($themeShadow);
 
     $enableKatex = new Typecho_Widget_Helper_Form_Element_Radio('enableKatex', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '0', _t('是否开启Katex数学公式解析'), _t('默认关闭'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_katex')), _t(GI18n::t('config.enable_katex_desc')));
     $form->addInput($enableKatex);
 
     $autoBanner = new Typecho_Widget_Helper_Form_Element_Radio('autoBanner', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '1', _t('自动获取第一张图片作为头图'), _t('默认开启'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.auto_banner')), _t(GI18n::t('config.auto_banner_desc')));
     $form->addInput($autoBanner);
 
     $enableIndexPage = new Typecho_Widget_Helper_Form_Element_Radio('enableIndexPage', array(
-        '1' => _t('使用'),
-        '0' => _t('不使用')
-    ), '0', _t('是否使用独立页面作首页'), _t('默认不使用'));
+        '1' => _t(GI18n::t('common.use')),
+        '0' => _t(GI18n::t('common.not_use'))
+    ), '0', _t(GI18n::t('config.enable_index_page')), _t(GI18n::t('config.enable_index_page_desc')));
     $form->addInput($enableIndexPage);
 
     $enableHeaderSearch = new Typecho_Widget_Helper_Form_Element_Radio('enableHeaderSearch', array(
-        '1' => _t('开启'),
-        '0' => _t('关闭')
-    ), '0', _t('是否在头部添加搜索开关'), _t('默认不打开,需要配合exsearch插件使用'));
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_search')), _t(GI18n::t('config.enable_search_desc')));
     $form->addInput($enableHeaderSearch);
 
     $articleStyle = new Typecho_Widget_Helper_Form_Element_Radio('articleStyle', array(
-        '2' => _t('大图'),
-        '1' => _t('单列'),
-        '0' => _t('双列')
-    ), '0', _t('首页样式'), _t('默认为双列'));
+        '2' => _t(GI18n::t('config.style_large')),
+        '1' => _t(GI18n::t('config.style_single')),
+        '0' => _t(GI18n::t('config.style_double'))
+    ), '0', _t(GI18n::t('config.article_style')), _t(GI18n::t('config.article_style_desc')));
     $form->addInput($articleStyle);
 
-    $defaultArticlePath = new Typecho_Widget_Helper_Form_Element_Text('defaultArticlePath', null, 'index.php/blog', _t('默认头部文章路径'), _t('前面不需要加/'));
+    $defaultArticlePath = new Typecho_Widget_Helper_Form_Element_Text('defaultArticlePath', null, 'index.php/blog', _t(GI18n::t('config.default_path')), _t(GI18n::t('config.default_path_desc')));
     $form->addInput($defaultArticlePath);
 
-    $customWidgets = new Typecho_Widget_Helper_Form_Element_Textarea('customWidgets', null, null, _t('侧边栏小组件配置'), _t(''));
+    $customWidgets = new Typecho_Widget_Helper_Form_Element_Textarea('customWidgets', null, null, _t(GI18n::t('config.custom_widgets')), _t(''));
     $form->addInput($customWidgets);
 
-    $customCSS = new Typecho_Widget_Helper_Form_Element_Textarea('customCSS', null, null, _t('自定义CSS'), _t(''));
+    $customCSS = new Typecho_Widget_Helper_Form_Element_Textarea('customCSS', null, null, _t(GI18n::t('config.custom_css')), _t(''));
     $form->addInput($customCSS);
 
-    $customHeaderJS = new Typecho_Widget_Helper_Form_Element_Textarea('customHeaderJS', null, null, _t('自定义头部JS'), _t('head标签中'));
+    $customHeaderJS = new Typecho_Widget_Helper_Form_Element_Textarea('customHeaderJS', null, null, _t(GI18n::t('config.custom_header_js')), _t(GI18n::t('config.custom_header_js_desc')));
     $form->addInput($customHeaderJS);
 
-    $customFooterJS = new Typecho_Widget_Helper_Form_Element_Textarea('customFooterJS', null, null, _t('自定义底部JS'), _t('body结束前'));
+    $customFooterJS = new Typecho_Widget_Helper_Form_Element_Textarea('customFooterJS', null, null, _t(GI18n::t('config.custom_footer_js')), _t(GI18n::t('config.custom_footer_js_desc')));
     $form->addInput($customFooterJS);
 
-    $customPjaxCallback = new Typecho_Widget_Helper_Form_Element_Textarea('customPjaxCallback', null, null, _t('自定义Pjax回调函数'), _t('如果你不知道这个是啥，留着就好'));
+    $customPjaxCallback = new Typecho_Widget_Helper_Form_Element_Textarea('customPjaxCallback', null, null, _t(GI18n::t('config.custom_pjax')), _t(GI18n::t('config.custom_pjax_desc')));
     $form->addInput($customPjaxCallback);
 
-    $advanceSetting = new Typecho_Widget_Helper_Form_Element_Textarea('advanceSetting', null, null, _t('高级设置'), _t('看着就很高级'));
+    $advanceSetting = new Typecho_Widget_Helper_Form_Element_Textarea('advanceSetting', null, null, _t(GI18n::t('config.advance_setting')), _t(GI18n::t('config.advance_setting_desc')));
     $form->addInput($advanceSetting);
 
     backup();
@@ -275,19 +283,19 @@ function themeConfig($form)
 
 function themeFields($layout)
 {
-    $imgurl = new Typecho_Widget_Helper_Form_Element_Text('imgurl', null, null, _t('文章头图地址'), _t('在这里填入一个图片URL地址'));
+    $imgurl = new Typecho_Widget_Helper_Form_Element_Text('imgurl', null, null, _t(GI18n::t('fields.banner')), _t(GI18n::t('fields.banner_desc')));
     $layout->addItem($imgurl);
 
     $headerDisplay = new Typecho_Widget_Helper_Form_Element_Radio('headerDisplay', array(
-        '1' => _t('显示'),
-        '0' => _t('不显示')
-    ), '0', _t('(独立页面)是否显示在头部导航栏'), _t('默认不显示'));
+        '1' => _t(GI18n::t('common.show')),
+        '0' => _t(GI18n::t('common.hide'))
+    ), '0', _t(GI18n::t('fields.header_display')), _t(GI18n::t('fields.header_display_desc')));
     $layout->addItem($headerDisplay);
 
     $enableComment = new Typecho_Widget_Helper_Form_Element_Radio('enableComment', array(
-        '1' => _t('显示'),
-        '0' => _t('不显示')
-    ), '0', _t('(独立页面)是否显示评论框'), _t('默认不显示'));
+        '1' => _t(GI18n::t('common.show')),
+        '0' => _t(GI18n::t('common.hide'))
+    ), '0', _t(GI18n::t('fields.enable_comment')), _t(GI18n::t('fields.enable_comment_desc')));
     $layout->addItem($enableComment);
 }
 

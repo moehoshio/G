@@ -9,7 +9,7 @@ if (isset($_POST['DYLM'])) {
 }
 ?>
 <!DOCTYPE HTML>
-<html lang="zh">
+<html lang="<?php echo GI18n::getHtmlLang(); ?>">
 <head>
     <meta charset="<?php $this->options->charset(); ?>">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -21,10 +21,10 @@ if (isset($_POST['DYLM'])) {
     <link rel='dns-prefetch' href='//s.w.org'>
     <link rel="apple-touch-icon-precomposed" href="<?php $this->options->favicon(); ?>">
     <title><?php $this->archiveTitle(array(
-            'category' => _t('分类 %s 下的文章'),
-            'search' => _t('包含关键字 %s 的文章'),
-            'tag' => _t('标签 %s 下的文章'),
-            'author' => _t('%s 发布的文章')
+            'category' => _t(GI18n::t('archive.category')),
+            'search' => _t(GI18n::t('archive.search')),
+            'tag' => _t(GI18n::t('archive.tag')),
+            'author' => _t(GI18n::t('archive.author'))
         ), '', ' | '); ?><?php $this->options->title(); ?></title>
     <style>
         /* 输出自定义主题色 */
@@ -97,9 +97,9 @@ if (isset($_POST['DYLM'])) {
             </div>
             <div id="header-content-right">
                 <nav>
-                    <a href="<?php $this->options->siteUrl() ?>" <?php if ($this->is('index')) : ?> class="nav-focus"<?php endif; ?>>首页</a>
+                    <a href="<?php $this->options->siteUrl() ?>" <?php if ($this->is('index')) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.home'); ?></a>
                     <?php if ($this->options->enableIndexPage): ?>
-                        <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is('archive') or $this->is('post')) : ?> class="nav-focus"<?php endif; ?>>文章</a>
+                        <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is('archive') or $this->is('post')) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.articles'); ?></a>
                     <?php endif; ?>
                     <?php $this->widget('Widget_Contents_Page_List')->to($pages); ?>
                     <?php while ($pages->next()): ?>
@@ -112,7 +112,7 @@ if (isset($_POST['DYLM'])) {
                         <?php endif; ?>
                     <?php endwhile; ?>
                     <?php if ($this->options->enableHeaderSearch): ?>
-                        <a href="#" class="search-form-input">搜索</a>
+                        <a href="#" class="search-form-input"><?php GI18n::e('nav.search'); ?></a>
                     <?php endif; ?>
                 </nav>
             </div>

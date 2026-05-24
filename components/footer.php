@@ -8,9 +8,9 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
             <?php echo G::getFooterLogos(); ?>
         </div>
         <nav id="footer-nav">
-            <a href="<?php Helper::options()->siteUrl() ?>" <?php if ($this->is("index")) : ?> class="nav-focus"<?php endif; ?>>首页</a>
+            <a href="<?php Helper::options()->siteUrl() ?>" <?php if ($this->is("index")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.home'); ?></a>
             <?php if ($this->options->enableIndexPage): ?>
-                <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is("archive") or $this->is("post")) : ?> class="nav-focus"<?php endif; ?>>文章</a>
+                <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is("archive") or $this->is("post")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.articles'); ?></a>
             <?php endif; ?>
             <?php $this->widget("Widget_Contents_Page_List")->to($pages); ?>
             <?php while ($pages->next()): ?>

@@ -35,8 +35,10 @@ if (isset($_POST['DYLM'])) {
         <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/katex.min.css'); ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/G.css'); ?>?v=<?php echo $devTag; ?>">
+    <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/modern.css'); ?>?v=<?php echo $devTag; ?>">
     <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/translate.css'); ?>?v=<?php echo $devTag; ?>">
     <link rel="stylesheet alternate" href="<?php echo G::staticUrl("static/css/dark$minInfix.css?v=$devTag"); ?>" title="dark" disabled>
+    <link rel="stylesheet alternate" href="<?php echo G::staticUrl("static/css/modern-dark.css?v=$devTag"); ?>" title="dark" disabled>
 
     <style>
         /* 设置自定义背景[颜色/图片] */

@@ -678,25 +678,26 @@ footer {
 .article-banner-wrap {
   position: absolute;
   height: 100%;
-  width: 50%;
+  width: 100%;
   right: 0;
   top: 0;
   z-index: 1;
   background: rgba(255, 255, 255, 0.1);
   background: -webkit-linear-gradient(
-    left,
-    transparent,
-    rgba(255, 255, 255, 1)
+    right,
+    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.85)
   );
-  background: linear-gradient(to left, transparent, rgba(255, 255, 255, 1));
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.85));
+  pointer-events: none;
 }
 
 .article-banner {
   visibility: hidden;
-  opacity: 0.2;
+  opacity: 0.4;
   position: absolute;
   height: 100%;
-  width: 50%;
+  width: 100%;
   right: 0;
   top: 0;
   z-index: 0;

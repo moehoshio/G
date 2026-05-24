@@ -77,10 +77,24 @@
     border-radius: var(--modern-radius) var(--modern-radius) 0 0;
     opacity: 0;
     transition: opacity 0.3s ease;
+    z-index: 3;
 }
 
 .article-item:hover::before {
     opacity: 1;
+}
+
+/* Ensure banner wrap doesn't block hover visual feedback */
+.article-banner-wrap {
+    transition: opacity 0.3s ease;
+}
+
+.article-item:hover .article-banner-wrap {
+    opacity: 0.85;
+}
+
+.article-item:hover .article-banner {
+    opacity: 0.5;
 }
 
 /* ===== Card Style Articles - Gradient Enhancement ===== */

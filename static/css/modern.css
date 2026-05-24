@@ -1,0 +1,357 @@
+/* Modern UI Enhancement - Glassmorphism & Gradient RGB */
+
+/* ===== CSS Variables for Modern Effects ===== */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    --glass-blur: blur(12px);
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-accent: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --gradient-cool: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+    --gradient-border: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
+    --glow-primary: 0 0 20px rgba(102, 126, 234, 0.3);
+    --modern-radius: 20px;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Header - Glassmorphism + Gradient ===== */
+#header {
+    background: linear-gradient(135deg, rgba(106, 106, 106, 0.85) 0%, rgba(45, 55, 72, 0.9) 100%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+}
+
+#header:hover {
+    box-shadow: var(--glass-shadow), var(--glow-primary), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+#header-title h2 {
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#header-content-right nav a.nav-focus::before {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
+}
+
+/* ===== Article Cards - Frosted Glass ===== */
+.article-item {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition-smooth);
+}
+
+.article-item:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: var(--glass-shadow), var(--glow-primary);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.article-title a {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.article-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    border-radius: var(--modern-radius) var(--modern-radius) 0 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.article-item:hover::before {
+    opacity: 1;
+}
+
+/* ===== Card Style Articles - Gradient Enhancement ===== */
+.card-item article {
+    background: linear-gradient(218deg, rgba(138, 160, 255, 0.9) 30%, rgba(90, 140, 250, 0.9) 70%);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 40px rgba(90, 140, 250, 0.3);
+    transition: var(--transition-smooth);
+}
+
+.card-item article:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px rgba(90, 140, 250, 0.4);
+}
+
+/* ===== Footer - Glassmorphism + Gradient ===== */
+footer {
+    background: linear-gradient(135deg, rgba(106, 106, 106, 0.85) 0%, rgba(45, 55, 72, 0.9) 100%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: var(--transition-smooth);
+}
+
+#footer-nav a:hover {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* ===== PAP (Post/Page Content) - Glass Effect ===== */
+.PAP {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+}
+
+.PAP-banner {
+    background: linear-gradient(135deg, rgba(250, 250, 250, 0.8) 0%, rgba(240, 240, 250, 0.9) 100%);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+.PAP-banner div h1 {
+    background: linear-gradient(135deg, #333 0%, #555 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.PAP-content h1::after,
+.PAP-content h2::after,
+.PAP-content h3::after {
+    background: var(--gradient-primary) !important;
+    opacity: 0.8;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.PAP-content blockquote {
+    background: rgba(245, 245, 255, 0.6);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border-radius: 0 10px 10px 0;
+}
+
+.PAP-content blockquote::before {
+    background: var(--gradient-primary) !important;
+    border-radius: 3px;
+}
+
+/* ===== Sidebar - Glassmorphism ===== */
+.sliderbar-content {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+}
+
+#widgets .widget {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition-smooth);
+}
+
+#widgets .widget:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glass-shadow), var(--glow-primary);
+}
+
+#widgets .widget-recent-comment .recent-comment-content {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+}
+
+.profile-content i {
+    background: linear-gradient(135deg, rgba(250, 250, 250, 0.8) 0%, rgba(240, 240, 250, 0.9) 100%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+.profile-avatar-container img {
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.8) !important;
+    transition: var(--transition-smooth);
+}
+
+.profile-avatar-container img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+}
+
+/* ===== Toolbar - Frosted Glass Buttons ===== */
+.toolbar-btn {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: var(--transition-smooth);
+}
+
+.toolbar-btn:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* ===== TOC - Glass Panel ===== */
+#toc {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-left: 1px solid var(--glass-border);
+    box-shadow: -8px 0 32px rgba(31, 38, 135, 0.1);
+}
+
+#toc-close {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+}
+
+/* ===== Comment Section - Glass Cards ===== */
+.comment-content {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition-smooth);
+}
+
+.comment-content:hover {
+    box-shadow: var(--glass-shadow), 0 0 15px rgba(102, 126, 234, 0.1);
+}
+
+/* ===== Pagination - Modern Buttons ===== */
+a.next,
+a.prev {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition-smooth);
+}
+
+a.next:hover,
+a.prev:hover {
+    transform: translateY(-2px) scale(0.99);
+    box-shadow: var(--glass-shadow), var(--glow-primary);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.page-navigator li a {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--glass-shadow);
+}
+
+/* ===== Toast Notifications - Glass ===== */
+.g-toast {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: 12px;
+}
+
+/* ===== OwO Container - Glass ===== */
+#OwO-container {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 -8px 32px rgba(31, 38, 135, 0.15);
+}
+
+/* ===== Links Page ===== */
+.link-wrap {
+    transition: var(--transition-smooth);
+}
+
+.link-wrap:hover {
+    transform: translateY(-4px);
+}
+
+/* ===== Scrollbar - Gradient ===== */
+html::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%) !important;
+    border-radius: 6px !important;
+}
+
+html *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%) !important;
+    border-radius: 6px !important;
+}
+
+/* ===== Selection Color ===== */
+::selection {
+    background: rgba(102, 126, 234, 0.3);
+    color: inherit;
+}
+
+::-moz-selection {
+    background: rgba(102, 126, 234, 0.3);
+    color: inherit;
+}
+
+/* ===== Animations Enhancement ===== */
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes glow-pulse {
+    0%, 100% { box-shadow: var(--glass-shadow); }
+    50% { box-shadow: var(--glass-shadow), 0 0 20px rgba(102, 126, 234, 0.2); }
+}
+
+/* ===== Sidebar Cover - Enhanced Backdrop ===== */
+#sliderbar-cover.sliderbar-cover__show {
+    background: rgba(75, 85, 99, 0.4);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    backdrop-filter: blur(8px) saturate(150%);
+}
+
+/* ===== Lightbox - Glass Overlay ===== */
+.lightbox-wrap {
+    background: rgba(255, 255, 255, 0.85) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* ===== Search Input Enhancement ===== */
+.search-form-input:hover {
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}

@@ -186,8 +186,9 @@ let makeGallery = () => {
  * 夜间模式开关
  */
 let darkModeToggle = () => {
-  document.querySelector('link[title="dark"]').disabled =
-    !document.querySelector('link[title="dark"]').disabled
+  document.querySelectorAll('link[title="dark"]').forEach(el => {
+    el.disabled = !el.disabled
+  })
 }
 
 /**
@@ -214,8 +215,8 @@ let autoDarkMode = () => {
     return
 
   if (nightModeMap[nightMode])
-    document.querySelector('link[title="dark"]').disabled = false
-  else document.querySelector('link[title="dark"]').disabled = true
+    document.querySelectorAll('link[title="dark"]').forEach(el => { el.disabled = false })
+  else document.querySelectorAll('link[title="dark"]').forEach(el => { el.disabled = true })
 }
 
 /**

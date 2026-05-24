@@ -42,6 +42,7 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
 <script src="<?php echo G::staticUrl("static/js/lib$minInfix.js?v=$devTag"); ?>"></script>
 <script src="<?php echo G::staticUrl("static/js/prism.js?v=$devTag"); ?>" data-manual></script>
 <script src="<?php echo G::staticUrl("static/js/G$minInfix.js?v=$devTag"); ?>"></script>
+<script src="<?php echo G::staticUrl("static/js/translate.js?v=$devTag"); ?>"></script>
 <script>
     <?php $this->options->customFooterJS(); ?>
 </script>

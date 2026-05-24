@@ -458,6 +458,10 @@ let pageInit = () => {
       throwOnError: true,
     })
   }
+  // Initialize content translation
+  if (typeof window.initContentTranslation === 'function') {
+    window.initContentTranslation()
+  }
   custom_callback()
 }
 

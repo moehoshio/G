@@ -35,6 +35,7 @@ if (isset($_POST['DYLM'])) {
         <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/katex.min.css'); ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/G.css'); ?>?v=<?php echo $devTag; ?>">
+    <link rel="stylesheet" href="<?php echo G::staticUrl('static/css/translate.css'); ?>?v=<?php echo $devTag; ?>">
     <link rel="stylesheet alternate" href="<?php echo G::staticUrl("static/css/dark$minInfix.css?v=$devTag"); ?>" title="dark" disabled>
 
     <style>
@@ -63,6 +64,7 @@ if (isset($_POST['DYLM'])) {
             autoTOC: <?php echo G::$config["enableDefaultTOC"] == 1 ? 'true' : 'false' ?>,
             nightSpan: "<?php echo G::$config["autoNightSpan"]; ?>",
             nightMode: "<?php echo G::$config["autoNightMode"]; ?>",
+            themeUrl: "<?php echo G::$themeUrl; ?>",
         };
 
         function custom_callback() {

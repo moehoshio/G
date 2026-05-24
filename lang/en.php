@@ -190,4 +190,10 @@ return [
     'comment.placeholder.18' => '🎵 Give your sentence a melody.',
     'comment.placeholder.19' => '🌧️ A little rain to help words sprout.',
     'comment.placeholder.20' => '🗺️ Draw a map with a single sentence.',
+
+    // Content translation
+    'translate.label' => 'Content Language',
+    'translate.loading' => 'Translating...',
+    'translate.error' => 'Translation failed',
+    'translate.original' => 'Original',
 ];

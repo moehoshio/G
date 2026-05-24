@@ -190,4 +190,10 @@ return [
     'comment.placeholder.18' => '🎵 让句子有点旋律。',
     'comment.placeholder.19' => '🌧️ 下点小雨，让文字长出芽。',
     'comment.placeholder.20' => '🗺️ 用一句话画一张地图。',
+
+    // Content translation
+    'translate.label' => '内容语言',
+    'translate.loading' => '翻译中...',
+    'translate.error' => '翻译失败',
+    'translate.original' => '原文',
 ];

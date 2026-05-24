@@ -44,6 +44,10 @@ html {
     display: none;
 }
 
+.article-banner-full {
+    display: block;
+}
+
 a.prev,
 a.next {
     background: rgba(22, 22, 26, 0.99);

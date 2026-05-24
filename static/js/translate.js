@@ -307,13 +307,6 @@
     }
   }
 
-  // Expose for pjax re-initialization
+  // Expose for pjax re-initialization (called by pageInit)
   window.initContentTranslation = initTranslation
-
-  // Initialize on page ready (will also be called by pageInit via pjax)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTranslation)
-  } else {
-    initTranslation()
-  }
 })()

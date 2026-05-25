@@ -552,32 +552,49 @@ function gAdminSectionsAssets()
     );
     $sectionsJson = json_encode($sections, JSON_UNESCAPED_UNICODE);
     $tocTitle     = addslashes(GI18n::t('section.toc_title'));
+    $collapseAll  = addslashes(GI18n::t('section.collapse_all'));
+    $expandAll    = addslashes(GI18n::t('section.expand_all'));
 
     ob_start();
     ?>
     <style>
-    /* Layout the settings page as a two-column flex so the side nav can
-       sit next to the form without altering Typecho's markup. */
+    /* Settings page side-nav layout. The nav floats to the left of the form
+       so it can use `position: sticky` and follow the scroll, while leaving
+       Typecho's markup untouched. */
     .typecho-page-main { position: relative; }
-    body.g-sections-on .typecho-page-main > form,
-    body.g-sections-on .typecho-page-main > div#backup { padding-left: 220px; }
+    body.g-sections-on .typecho-page-main::after { content: ''; display: block; clear: both; }
     @media (max-width: 900px) {
         body.g-sections-on .typecho-page-main > form,
         body.g-sections-on .typecho-page-main > div#backup { padding-left: 0; }
-        .g-section-nav { position: static !important; width: auto !important; margin-bottom: 1rem; }
     }
 
     .g-section-nav {
-        position: absolute;
-        top: 0;
-        left: 0;
+        position: sticky;
+        top: 20px;
+        align-self: flex-start;
         width: 200px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
         font-size: 13px;
         border: 1px solid #e3e3e3;
         border-radius: 6px;
         background: #fafafa;
         padding: 10px 0;
         z-index: 5;
+        float: left;
+        margin-right: 20px;
+    }
+    body.g-sections-on .typecho-page-main > form,
+    body.g-sections-on .typecho-page-main > div#backup { padding-left: 0; }
+    body.g-sections-on .typecho-page-main { overflow: visible; }
+    @media (max-width: 900px) {
+        .g-section-nav {
+            position: static;
+            float: none;
+            width: auto;
+            margin: 0 0 1rem 0;
+            max-height: none;
+        }
     }
     .g-section-nav-title {
         font-weight: 600;
@@ -585,7 +602,20 @@ function gAdminSectionsAssets()
         color: #313a46;
         border-bottom: 1px solid #e3e3e3;
         margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
+    .g-section-nav-toggle-all {
+        font-size: 11px;
+        font-weight: 400;
+        color: #6a6a6a;
+        cursor: pointer;
+        user-select: none;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+    .g-section-nav-toggle-all:hover { background: #ececec; color: #313a46; }
     .g-section-nav a {
         display: block;
         padding: 6px 14px;
@@ -599,6 +629,7 @@ function gAdminSectionsAssets()
         background: #fff;
         border-left-color: #313a46;
         color: #313a46;
+        font-weight: 600;
     }
 
     .g-section {
@@ -649,6 +680,8 @@ function gAdminSectionsAssets()
     (function(){
         var SECTIONS = <?php echo $sectionsJson; ?>;
         var TOC_TITLE = '<?php echo $tocTitle; ?>';
+        var TOGGLE_COLLAPSE_TEXT = '<?php echo $collapseAll; ?>';
+        var TOGGLE_EXPAND_TEXT = '<?php echo $expandAll; ?>';
 
         function findFieldLi(name){
             // Typecho wraps each form item in <li class="typecho-option">; the
@@ -742,17 +775,26 @@ function gAdminSectionsAssets()
 
             // Build side-nav.
             var page = document.querySelector('.typecho-page-main');
+            var navLinks = [];
             if (page) {
                 var nav = document.createElement('nav');
                 nav.className = 'g-section-nav';
                 var title = document.createElement('div');
                 title.className = 'g-section-nav-title';
-                title.textContent = TOC_TITLE;
+                var titleLabel = document.createElement('span');
+                titleLabel.textContent = TOC_TITLE;
+                title.appendChild(titleLabel);
+                var toggleAll = document.createElement('span');
+                toggleAll.className = 'g-section-nav-toggle-all';
+                toggleAll.textContent = TOGGLE_COLLAPSE_TEXT;
+                toggleAll.setAttribute('data-state', 'expanded');
+                title.appendChild(toggleAll);
                 nav.appendChild(title);
                 ordered.forEach(function(sec){
                     var a = document.createElement('a');
                     a.href = '#g-sec-' + sec.key;
                     a.textContent = sec.label;
+                    a.setAttribute('data-sec-key', sec.key);
                     a.addEventListener('click', function(e){
                         e.preventDefault();
                         var target = document.getElementById('g-sec-' + sec.key);
@@ -764,8 +806,54 @@ function gAdminSectionsAssets()
                         a.classList.add('active');
                     });
                     nav.appendChild(a);
+                    navLinks.push(a);
                 });
                 page.insertBefore(nav, page.firstChild);
+
+                // Expand / collapse all toggle.
+                toggleAll.addEventListener('click', function(){
+                    var state = toggleAll.getAttribute('data-state');
+                    var collapse = state === 'expanded';
+                    ordered.forEach(function(sec){
+                        var t = document.getElementById('g-sec-' + sec.key);
+                        if (!t) return;
+                        if (collapse) t.classList.add('collapsed');
+                        else t.classList.remove('collapsed');
+                    });
+                    toggleAll.setAttribute('data-state', collapse ? 'collapsed' : 'expanded');
+                    toggleAll.textContent = collapse ? TOGGLE_EXPAND_TEXT : TOGGLE_COLLAPSE_TEXT;
+                });
+
+                // Scroll-spy: highlight the section closest to the top of the viewport.
+                var scrollSpy = function(){
+                    var bestKey = null;
+                    var bestTop = -Infinity;
+                    var anchor = 80; // px from top considered the "active" line
+                    ordered.forEach(function(sec){
+                        var t = document.getElementById('g-sec-' + sec.key);
+                        if (!t) return;
+                        var top = t.getBoundingClientRect().top;
+                        if (top <= anchor && top > bestTop) {
+                            bestTop = top;
+                            bestKey = sec.key;
+                        }
+                    });
+                    if (!bestKey && ordered.length) bestKey = ordered[0].key;
+                    navLinks.forEach(function(l){
+                        if (l.getAttribute('data-sec-key') === bestKey) l.classList.add('active');
+                        else l.classList.remove('active');
+                    });
+                };
+                var spyTicking = false;
+                window.addEventListener('scroll', function(){
+                    if (spyTicking) return;
+                    spyTicking = true;
+                    requestAnimationFrame(function(){
+                        scrollSpy();
+                        spyTicking = false;
+                    });
+                }, { passive: true });
+                scrollSpy();
             }
 
             // Legacy section: grey out sub-options when enableLegacy is off.

@@ -160,7 +160,7 @@ return [
     'config.lang_save_error' => '儲存失敗',
     'config.auto_detect' => '自動偵測',
     'config.footer_custom' => '自訂底部內容',
-    'config.footer_custom_desc' => '每行一項，支援擴充 Markdown 語法：<br/>文字：<code>hello world</code><br/>連結：<code>[文字](https://...)</code><br/>圖片：<code>![alt](https://.../logo.png)</code><br/>圖片連結：<code>[![alt](src)](url)</code><br/>新分頁開啟：在末尾追加 <code>{newtab}</code>，如 <code>[文字](url){newtab}</code><br/>又拍雲聯盟圖示可直接寫：<code>{upyun}</code><br/>留空則使用舊版「底部左側 logo」與「又拍雲」開關（需先開啟「啟用舊版選項」）。',
+    'config.footer_custom_desc' => '每行一項，支援擴充 Markdown 語法：<br/>文字：<code>hello world</code><br/>連結：<code>[文字](https://...)</code><br/>圖片：<code>![alt](https://.../logo.png)</code><br/>圖片連結：<code>[![alt](src)](url)</code><br/>新分頁開啟：在末尾追加 <code>{newtab}</code>，如 <code>[文字](url){newtab}</code><br/>又拍雲聯盟圖示可直接寫：<code>{upyun}</code><br/><br/><b>網格佈局：</b>在任意位置加一行 <code>{grid:cols=3}</code> 或 <code>{grid:cols=3,rows=2}</code>，之後的所有項目會按 N 欄網格自適應排列。<br/>對單項指定位置：在行尾加 <code>{cell:列,欄}</code> 或帶跨度 <code>{cell:列,欄,列跨,欄跨}</code>，例 <code>[關於](/about){cell:1,3}</code>。未指定位置的項目會自動填入剩餘格子（含空列/空欄）。<br/><br/>留空則使用舊版「底部左側 logo」與「又拍雲」開關（需先開啟「啟用舊版選項」）。',
 
     // Admin settings sectioning
     'section.toc_title'   => '設定目錄',
@@ -178,6 +178,8 @@ return [
     'section.custom_code' => '自訂程式碼',
     'section.legacy'      => '舊版選項',
     'section.advanced'    => '進階設定',
+    'section.collapse_all' => '全部摺疊',
+    'section.expand_all'   => '全部展開',
 
     // Common
     'common.enable' => '開啟',

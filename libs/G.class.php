@@ -541,6 +541,8 @@ class G
      *   - 图片链接：         [![alt](src)](url)
      *   - 新页面打开扩展：   在 ](url) 之后追加 {newtab} 或 {_blank}
      *   - 内置 token：       {upyun}（又拍云联盟 logo + 链接，会被首先展开）
+     *   - 网格定位：         在行尾追加 {cell:r,c} 或 {cell:r,c,rs,cs}
+     *                        （仅在使用 {grid:...} 容器指令时生效）
      *
      * @param String $line 原始一行
      * @return String 渲染后的 HTML（已转义）
@@ -551,6 +553,43 @@ class G
         if ($line === '')
             return '';
 
+        // 解析尾部的网格定位指令 {cell:r,c[,rs,cs]}，先剥离再渲染内容
+        $cellStyle = '';
+        if (preg_match('/\s*\{cell:\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+)\s*,\s*(\d+))?\s*\}\s*$/', $line, $cm)) {
+            $row = max(1, (int)$cm[1]);
+            $col = max(1, (int)$cm[2]);
+            $styles = array(
+                'grid-row-start: ' . $row,
+                'grid-column-start: ' . $col,
+            );
+            if (isset($cm[3]) && $cm[3] !== '' && isset($cm[4]) && $cm[4] !== '') {
+                $rs = max(1, (int)$cm[3]);
+                $cs = max(1, (int)$cm[4]);
+                $styles[] = 'grid-row-end: span ' . $rs;
+                $styles[] = 'grid-column-end: span ' . $cs;
+            }
+            $cellStyle = ' style="' . htmlspecialchars(implode('; ', $styles), ENT_QUOTES) . '"';
+            $line = trim(preg_replace('/\s*\{cell:[^}]*\}\s*$/', '', $line));
+            if ($line === '')
+                return '';
+        }
+
+        $inner = self::renderFooterCustomInner($line);
+        if ($inner === '')
+            return '';
+
+        // 当存在网格定位时，使用 <span> 包裹以承载 grid-* 样式
+        if ($cellStyle !== '') {
+            return '<span class="footer-grid-cell"' . $cellStyle . '>' . $inner . '</span>';
+        }
+        return $inner;
+    }
+
+    /**
+     * 实际渲染单项内容（不含网格定位包裹）。
+     */
+    private static function renderFooterCustomInner($line)
+    {
         // 内置 token: {upyun}
         if ($line === '{upyun}') {
             return '<a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" rel="noopener noreferrer" target="_blank">'
@@ -591,6 +630,11 @@ class G
      * 渲染整个自定义底部内容。
      * 若 footerCustom 为空，则回退到 legacy 行为（拼接 enableUPYUNLOGO + footerLOGO）。
      *
+     * 支持容器指令（单独占一行）：
+     *   {grid:cols=N}              指定 N 列，行数随内容自适应
+     *   {grid:cols=N,rows=M}       指定 N 列 M 行
+     * 容器指令必须在使用 {cell:...} 之前出现；指令本身不输出。
+     *
      * @return String
      */
     public static function renderFooterCustom()
@@ -601,13 +645,39 @@ class G
             return self::getFooterLogos();
         }
         $lines = preg_split('/\r\n|\r|\n/', $custom);
-        $html  = '';
+
+        $gridCols = 0;
+        $gridRows = 0;
+        $items    = '';
         foreach ($lines as $line) {
-            $rendered = self::renderFooterCustomItem($line);
+            $trim = trim($line);
+            if ($trim === '')
+                continue;
+            // 容器指令：{grid:cols=N[,rows=M]}
+            if (preg_match('/^\{grid:\s*cols\s*=\s*(\d+)(?:\s*,\s*rows\s*=\s*(\d+))?\s*\}$/i', $trim, $gm)) {
+                $gridCols = max(1, (int)$gm[1]);
+                if (isset($gm[2]) && $gm[2] !== '')
+                    $gridRows = max(1, (int)$gm[2]);
+                continue;
+            }
+            $rendered = self::renderFooterCustomItem($trim);
             if ($rendered !== '')
-                $html .= $rendered;
+                $items .= $rendered;
         }
-        return $html;
+
+        if ($items === '')
+            return '';
+
+        if ($gridCols > 0) {
+            $styleParts = array('--footer-grid-cols: ' . $gridCols);
+            if ($gridRows > 0)
+                $styleParts[] = '--footer-grid-rows: ' . $gridRows;
+            $style = htmlspecialchars(implode('; ', $styleParts), ENT_QUOTES);
+            $rowsAttr = $gridRows > 0 ? ' data-rows="' . $gridRows . '"' : '';
+            return '<div class="footer-grid" data-cols="' . $gridCols . '"' . $rowsAttr
+                 . ' style="' . $style . '">' . $items . '</div>';
+        }
+        return $items;
     }
 
     /**

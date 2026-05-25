@@ -641,6 +641,38 @@ footer {
   a {
     height: 1.35rem;
     margin-right: 5px;
+    color: inherit;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  // Grid 容器：footerCustom 中 {grid:cols=N[,rows=M]} 触发
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--footer-grid-cols, 3), minmax(0, 1fr));
+    grid-auto-rows: minmax(1.5rem, auto);
+    // dense 使后续元素可填充先前留下的空格
+    grid-auto-flow: dense;
+    gap: 6px 12px;
+    align-items: center;
+    width: 100%;
+
+    > * { min-width: 0; }
+
+    a, .footer-grid-cell a {
+      color: inherit;
+      height: auto;
+      margin-right: 0;
+
+      &:hover { color: #fff; }
+    }
+
+    img {
+      margin-right: 0;
+      max-width: 100%;
+    }
   }
 }
 

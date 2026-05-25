@@ -497,13 +497,14 @@ footer p {
 }
 #articles {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 20px;
 }
 .article-item {
   position: relative;
+  box-sizing: border-box;
   /* Width derived from --article-columns (default 2). Each row distributes
      the remaining space equally between N items, accounting for the gaps. */
   flex: 0 0 calc((100% - (var(--article-columns, 2) - 1) * 20px) / var(--article-columns, 2));

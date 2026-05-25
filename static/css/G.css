@@ -497,14 +497,18 @@ footer p {
 }
 #articles {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
   flex-wrap: wrap;
+  gap: 20px;
 }
 .article-item {
   position: relative;
-  width: 325px;
-  margin-bottom: 20px;
+  /* Width derived from --article-columns (default 2). Each row distributes
+     the remaining space equally between N items, accounting for the gaps. */
+  flex: 0 0 calc((100% - (var(--article-columns, 2) - 1) * 20px) / var(--article-columns, 2));
+  width: calc((100% - (var(--article-columns, 2) - 1) * 20px) / var(--article-columns, 2));
+  margin-bottom: 0;
   padding: 30px;
   background: var(--theme-bg-main);
   box-shadow: var(--theme-shadow, none);
@@ -2119,6 +2123,7 @@ span#toggleOwO {
   }
   .article-item {
     width: 100%;
+    flex-basis: 100%;
     padding: 1.5rem;
   }
   .article-banner-full {

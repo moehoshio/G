@@ -409,7 +409,15 @@ function gPalettePickerAssets()
  */
 function gLangAutosaveAssets()
 {
-    $endpoint = G::$themeUrl . '?GLangChange=1';
+    // The handler at the top of this file (functions.php) only runs when
+    // Typecho's front-controller (index.php) actually loads the active theme.
+    // Hitting `<themeUrl>/?GLangChange=1` directly bypasses Typecho entirely
+    // (it just hits the theme directory on the web server) and yields an
+    // empty 200 response, so the change is never persisted.  Use the site
+    // URL instead so the request is routed through index.php which then
+    // includes functions.php and executes the save logic.
+    $siteUrl  = rtrim(Helper::options()->siteUrl, '/');
+    $endpoint = $siteUrl . '/?GLangChange=1';
     $savingText = addslashes(GI18n::t('config.lang_saving'));
     $savedText  = addslashes(GI18n::t('config.lang_saved'));
     $errorText  = addslashes(GI18n::t('config.lang_save_error'));
@@ -512,11 +520,255 @@ function gLangAutosaveAssets()
     return ob_get_clean();
 }
 
+/**
+ * Inline CSS + JS for admin settings sectioning.
+ *
+ * Groups the otherwise-flat list of theme settings into collapsible
+ * categories with anchored side-navigation, so the long settings page
+ * becomes browsable.  Sections are defined as a map from a starting
+ * field name (the FIRST input belonging to that section) to a section
+ * label; everything from that input up to the next section starter is
+ * considered part of that section.
+ */
+function gAdminSectionsAssets()
+{
+    // Field name → section key.  Each entry marks the *start* of a section.
+    // The order here is also the order sections appear in the side nav.
+    $sections = array(
+        'lang'           => GI18n::t('section.basic'),
+        'background'     => GI18n::t('section.appearance'),
+        'defaultBanner'  => GI18n::t('section.banner'),
+        'enableHeaderSearch' => GI18n::t('section.header'),
+        'profileAvatar'  => GI18n::t('section.sidebar'),
+        'sponsorIMG'     => GI18n::t('section.sponsor'),
+        'enableIndexPage'=> GI18n::t('section.homepage'),
+        'footerCustom'   => GI18n::t('section.footer'),
+        'autoNightSpan'  => GI18n::t('section.night'),
+        'commentType'    => GI18n::t('section.comment'),
+        'enableDefaultTOC' => GI18n::t('section.article'),
+        'customWidgets'  => GI18n::t('section.custom_code'),
+        'enableLegacy'   => GI18n::t('section.legacy'),
+        'advanceSetting' => GI18n::t('section.advanced'),
+    );
+    $sectionsJson = json_encode($sections, JSON_UNESCAPED_UNICODE);
+    $tocTitle     = addslashes(GI18n::t('section.toc_title'));
+
+    ob_start();
+    ?>
+    <style>
+    /* Layout the settings page as a two-column flex so the side nav can
+       sit next to the form without altering Typecho's markup. */
+    .typecho-page-main { position: relative; }
+    body.g-sections-on .typecho-page-main > form,
+    body.g-sections-on .typecho-page-main > div#backup { padding-left: 220px; }
+    @media (max-width: 900px) {
+        body.g-sections-on .typecho-page-main > form,
+        body.g-sections-on .typecho-page-main > div#backup { padding-left: 0; }
+        .g-section-nav { position: static !important; width: auto !important; margin-bottom: 1rem; }
+    }
+
+    .g-section-nav {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 200px;
+        font-size: 13px;
+        border: 1px solid #e3e3e3;
+        border-radius: 6px;
+        background: #fafafa;
+        padding: 10px 0;
+        z-index: 5;
+    }
+    .g-section-nav-title {
+        font-weight: 600;
+        padding: 4px 14px 8px;
+        color: #313a46;
+        border-bottom: 1px solid #e3e3e3;
+        margin-bottom: 6px;
+    }
+    .g-section-nav a {
+        display: block;
+        padding: 6px 14px;
+        color: #43454a;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+        transition: background .15s ease, border-color .15s ease;
+    }
+    .g-section-nav a:hover { background: #f0f0f0; }
+    .g-section-nav a.active {
+        background: #fff;
+        border-left-color: #313a46;
+        color: #313a46;
+    }
+
+    .g-section {
+        border: 1px solid #e3e3e3;
+        border-radius: 6px;
+        margin: 14px 0;
+        background: #fff;
+        scroll-margin-top: 60px;
+    }
+    .g-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        cursor: pointer;
+        background: #f6f7f9;
+        border-radius: 6px 6px 0 0;
+        border-bottom: 1px solid #e3e3e3;
+        user-select: none;
+    }
+    .g-section.collapsed .g-section-header { border-bottom: none; border-radius: 6px; }
+    .g-section-header h3 {
+        margin: 0;
+        font-size: 15px;
+        color: #313a46;
+    }
+    .g-section-toggle {
+        font-size: 13px;
+        color: #6a6a6a;
+        transition: transform .2s ease;
+    }
+    .g-section.collapsed .g-section-toggle { transform: rotate(-90deg); }
+    .g-section-body { padding: 4px 14px 10px; }
+    .g-section.collapsed .g-section-body { display: none; }
+    </style>
+    <script>
+    (function(){
+        var SECTIONS = <?php echo $sectionsJson; ?>;
+        var TOC_TITLE = '<?php echo $tocTitle; ?>';
+
+        function findFieldLi(name){
+            // Typecho wraps each form item in <li class="typecho-option">; the
+            // inner input/select/textarea carries the configured name attr.
+            var el = document.querySelector('[name="' + name + '"]');
+            if (!el) return null;
+            var li = el.closest('li.typecho-option');
+            return li || null;
+        }
+
+        function ready(fn){
+            if (document.readyState !== 'loading') fn();
+            else document.addEventListener('DOMContentLoaded', fn);
+        }
+
+        ready(function(){
+            // The themeConfig page may contain multiple `form.protected`
+            // elements (Typecho's main settings form + the backup form
+            // rendered by backup()). Pick the one that actually contains
+            // typecho-option items.
+            var forms = document.querySelectorAll('form.protected');
+            var form = null;
+            for (var fi = 0; fi < forms.length; fi++) {
+                if (forms[fi].querySelector('li.typecho-option')) { form = forms[fi]; break; }
+            }
+            if (!form) return;
+            // Find the <ul> that actually holds the typecho-option items.
+            var firstLi = form.querySelector('li.typecho-option');
+            if (!firstLi) return;
+            var ul = firstLi.parentNode;
+
+            // Build {sectionKey: {label, startLi}} list, in declared order.
+            var ordered = [];
+            Object.keys(SECTIONS).forEach(function(fieldName){
+                var li = findFieldLi(fieldName);
+                if (!li) return;
+                ordered.push({ key: fieldName, label: SECTIONS[fieldName], startLi: li });
+            });
+            if (!ordered.length) return;
+
+            document.body.classList.add('g-sections-on');
+
+            // For each section, wrap the relevant <li> elements in a
+            // <li class="g-section">… that contains a header + a nested <ul>.
+            ordered.forEach(function(sec, idx){
+                var nextStart = ordered[idx + 1] ? ordered[idx + 1].startLi : null;
+                // Collect contiguous siblings from sec.startLi up to (but not
+                // including) nextStart.
+                var nodes = [];
+                var cur = sec.startLi;
+                while (cur && cur !== nextStart) {
+                    var next = cur.nextElementSibling;
+                    nodes.push(cur);
+                    cur = next;
+                }
+                if (!nodes.length) return;
+
+                // Build wrapping container.
+                var wrapper = document.createElement('li');
+                wrapper.className = 'g-section';
+                wrapper.id = 'g-sec-' + sec.key;
+                wrapper.setAttribute('data-section-key', sec.key);
+
+                var header = document.createElement('div');
+                header.className = 'g-section-header';
+                var h3 = document.createElement('h3');
+                h3.textContent = sec.label;
+                var toggle = document.createElement('span');
+                toggle.className = 'g-section-toggle';
+                toggle.textContent = '▾';
+                header.appendChild(h3);
+                header.appendChild(toggle);
+
+                var body = document.createElement('div');
+                body.className = 'g-section-body';
+                var innerUl = document.createElement('ul');
+                innerUl.className = 'typecho-option-list';
+                body.appendChild(innerUl);
+
+                wrapper.appendChild(header);
+                wrapper.appendChild(body);
+
+                // Insert wrapper before the first node, then move nodes inside.
+                ul.insertBefore(wrapper, nodes[0]);
+                nodes.forEach(function(n){ innerUl.appendChild(n); });
+
+                header.addEventListener('click', function(){
+                    wrapper.classList.toggle('collapsed');
+                });
+            });
+
+            // Build side-nav.
+            var page = document.querySelector('.typecho-page-main');
+            if (page) {
+                var nav = document.createElement('nav');
+                nav.className = 'g-section-nav';
+                var title = document.createElement('div');
+                title.className = 'g-section-nav-title';
+                title.textContent = TOC_TITLE;
+                nav.appendChild(title);
+                ordered.forEach(function(sec){
+                    var a = document.createElement('a');
+                    a.href = '#g-sec-' + sec.key;
+                    a.textContent = sec.label;
+                    a.addEventListener('click', function(e){
+                        e.preventDefault();
+                        var target = document.getElementById('g-sec-' + sec.key);
+                        if (!target) return;
+                        // Expand if collapsed, then scroll to it.
+                        target.classList.remove('collapsed');
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        nav.querySelectorAll('a').forEach(function(x){ x.classList.remove('active'); });
+                        a.classList.add('active');
+                    });
+                    nav.appendChild(a);
+                });
+                page.insertBefore(nav, page.firstChild);
+            }
+        });
+    })();
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
 function themeConfig($form)
 {
     echo "<link rel='stylesheet' href='".G::staticUrl('static/css/Admin/S.min.css')."'/>";
     echo gPalettePickerAssets();
     echo gLangAutosaveAssets();
+    echo gAdminSectionsAssets();
     echo "<h2>".GI18n::t('config.title')."</h2>";
 
     $lang = new Typecho_Widget_Helper_Form_Element_Select('lang', array_merge(
@@ -533,12 +785,6 @@ function themeConfig($form)
 
     $cdn = new Typecho_Widget_Helper_Form_Element_Text('cdn', null, null, _t(GI18n::t('config.cdn')), _t(GI18n::t('config.cdn_desc')));
     $form->addInput($cdn);
-
-    $icp = new Typecho_Widget_Helper_Form_Element_Text('icp', null, null, _t(GI18n::t('config.icp')), _t(GI18n::t('config.icp_desc')));
-    $form->addInput($icp);
-
-    $icpUrl = new Typecho_Widget_Helper_Form_Element_Text('icpUrl', null, 'https://beian.miit.gov.cn', _t(GI18n::t('config.icp_url')), _t(GI18n::t('config.icp_url_desc')));
-    $form->addInput($icpUrl);
 
     $background = new Typecho_Widget_Helper_Form_Element_Text('background', null, null, _t(GI18n::t('config.background')), _t(GI18n::t('config.background_desc')));
     $form->addInput($background);
@@ -583,8 +829,29 @@ function themeConfig($form)
     $themeRadius = new Typecho_Widget_Helper_Form_Element_Text('themeRadius', null, '30px', _t(GI18n::t('config.theme_radius')), _t(GI18n::t('config.theme_radius_desc')));
     $form->addInput($themeRadius);
 
+    $themeShadow = new Typecho_Widget_Helper_Form_Element_Radio('themeShadow', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.theme_shadow')), _t(GI18n::t('config.theme_shadow_desc')));
+    $form->addInput($themeShadow);
+
     $defaultBanner = new Typecho_Widget_Helper_Form_Element_Text('defaultBanner', null, null, _t(GI18n::t('config.default_banner')), _t(GI18n::t('config.default_banner_desc')));
     $form->addInput($defaultBanner);
+
+    $autoBanner = new Typecho_Widget_Helper_Form_Element_Radio('autoBanner', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.auto_banner')), _t(GI18n::t('config.auto_banner_desc')));
+    $form->addInput($autoBanner);
+
+    $headerBackground = new Typecho_Widget_Helper_Form_Element_Text('headerBackground', null, null, _t(GI18n::t('config.header_bg')), _t(GI18n::t('config.header_bg_desc')));
+    $form->addInput($headerBackground);
+
+    $enableHeaderSearch = new Typecho_Widget_Helper_Form_Element_Radio('enableHeaderSearch', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_search')), _t(GI18n::t('config.enable_search_desc')));
+    $form->addInput($enableHeaderSearch);
 
     $profileAvatar = new Typecho_Widget_Helper_Form_Element_Text('profileAvatar', null, null, _t(GI18n::t('config.profile_avatar')), _t('https://...'));
     $form->addInput($profileAvatar);
@@ -604,26 +871,44 @@ function themeConfig($form)
     $profilePhotoDes = new Typecho_Widget_Helper_Form_Element_Text('profilePhotoDes', null, null, _t(GI18n::t('config.profile_photo_des')), _t(GI18n::t('config.profile_photo_des_desc')));
     $form->addInput($profilePhotoDes);
 
-    $footerLOGO = new Typecho_Widget_Helper_Form_Element_Text('footerLOGO', null, null, _t(GI18n::t('config.footer_logo')), _t(GI18n::t('config.footer_logo_desc')));
-    $form->addInput($footerLOGO);
+    $sponsorIMG = new Typecho_Widget_Helper_Form_Element_Text('sponsorIMG', null, null, _t(GI18n::t('config.sponsor_img')), _t(GI18n::t('config.sponsor_img_desc')));
+    $form->addInput($sponsorIMG);
+
+    /* ===== Homepage style — independent toggles, replaces old radio ===== */
+    $enableIndexPage = new Typecho_Widget_Helper_Form_Element_Radio('enableIndexPage', array(
+        '1' => _t(GI18n::t('common.use')),
+        '0' => _t(GI18n::t('common.not_use'))
+    ), '0', _t(GI18n::t('config.enable_index_page')), _t(GI18n::t('config.enable_index_page_desc')));
+    $form->addInput($enableIndexPage);
+
+    $articleColumns = new Typecho_Widget_Helper_Form_Element_Text('articleColumns', null, '2', _t(GI18n::t('config.article_columns')), _t(GI18n::t('config.article_columns_desc')));
+    $articleColumns->input->setAttribute('type', 'number');
+    $articleColumns->input->setAttribute('min', '1');
+    $articleColumns->input->setAttribute('max', '6');
+    $articleColumns->input->setAttribute('step', '1');
+    $form->addInput($articleColumns);
+
+    $showArticleBanner = new Typecho_Widget_Helper_Form_Element_Radio('showArticleBanner', array(
+        '1' => _t(GI18n::t('common.show')),
+        '0' => _t(GI18n::t('common.hide'))
+    ), '1', _t(GI18n::t('config.show_article_banner')), _t(GI18n::t('config.show_article_banner_desc')));
+    $form->addInput($showArticleBanner);
+
+    $showArticleExcerpt = new Typecho_Widget_Helper_Form_Element_Radio('showArticleExcerpt', array(
+        '1' => _t(GI18n::t('common.show')),
+        '0' => _t(GI18n::t('common.hide'))
+    ), '1', _t(GI18n::t('config.show_article_excerpt')), _t(GI18n::t('config.show_article_excerpt_desc')));
+    $form->addInput($showArticleExcerpt);
+
+    $defaultArticlePath = new Typecho_Widget_Helper_Form_Element_Text('defaultArticlePath', null, 'index.php/blog', _t(GI18n::t('config.default_path')), _t(GI18n::t('config.default_path_desc')));
+    $form->addInput($defaultArticlePath);
+    /* ============================================================== */
 
     $footerCustom = new Typecho_Widget_Helper_Form_Element_Textarea('footerCustom', null, null, _t(GI18n::t('config.footer_custom')), _t(GI18n::t('config.footer_custom_desc')));
     $form->addInput($footerCustom);
 
-    $sponsorIMG = new Typecho_Widget_Helper_Form_Element_Text('sponsorIMG', null, null, _t(GI18n::t('config.sponsor_img')), _t(GI18n::t('config.sponsor_img_desc')));
-    $form->addInput($sponsorIMG);
-
-    $headerBackground = new Typecho_Widget_Helper_Form_Element_Text('headerBackground', null, null, _t(GI18n::t('config.header_bg')), _t(GI18n::t('config.header_bg_desc')));
-    $form->addInput($headerBackground);
-
     $autoNightSpan = new Typecho_Widget_Helper_Form_Element_Text('autoNightSpan', null, '23-6', _t(GI18n::t('config.auto_night_span')), _t(GI18n::t('config.auto_night_span_desc')));
     $form->addInput($autoNightSpan);
-
-    $commentType = new Typecho_Widget_Helper_Form_Element_Radio('commentType', array(
-        '1' => _t(GI18n::t('common.enable')),
-        '0' => _t(GI18n::t('common.disable'))
-    ), '1', _t(GI18n::t('config.comment_switch')), _t(GI18n::t('config.comment_switch_desc')));
-    $form->addInput($commentType);
 
     $autoNightMode = new Typecho_Widget_Helper_Form_Element_Radio('autoNightMode', array(
         '3' => _t(GI18n::t('config.follow_system')),
@@ -633,57 +918,23 @@ function themeConfig($form)
     ), '3', _t(GI18n::t('config.auto_night_mode')), _t(GI18n::t('config.auto_night_mode_desc')));
     $form->addInput($autoNightMode);
 
+    $commentType = new Typecho_Widget_Helper_Form_Element_Radio('commentType', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '1', _t(GI18n::t('config.comment_switch')), _t(GI18n::t('config.comment_switch_desc')));
+    $form->addInput($commentType);
+
     $enableDefaultTOC = new Typecho_Widget_Helper_Form_Element_Radio('enableDefaultTOC', array(
         '1' => _t(GI18n::t('common.enable')),
         '0' => _t(GI18n::t('common.disable'))
     ), '0', _t(GI18n::t('config.enable_toc')), _t(GI18n::t('config.enable_toc_desc')));
     $form->addInput($enableDefaultTOC);
 
-    $enableUPYUNLOGO = new Typecho_Widget_Helper_Form_Element_Radio('enableUPYUNLOGO', array(
-        '1' => _t(GI18n::t('common.enable')),
-        '0' => _t(GI18n::t('common.disable'))
-    ), '0', _t(GI18n::t('config.enable_upyun')), _t(GI18n::t('config.enable_upyun_desc')));
-    $form->addInput($enableUPYUNLOGO);
-
-    $themeShadow = new Typecho_Widget_Helper_Form_Element_Radio('themeShadow', array(
-        '1' => _t(GI18n::t('common.enable')),
-        '0' => _t(GI18n::t('common.disable'))
-    ), '1', _t(GI18n::t('config.theme_shadow')), _t(GI18n::t('config.theme_shadow_desc')));
-    $form->addInput($themeShadow);
-
     $enableKatex = new Typecho_Widget_Helper_Form_Element_Radio('enableKatex', array(
         '1' => _t(GI18n::t('common.enable')),
         '0' => _t(GI18n::t('common.disable'))
     ), '0', _t(GI18n::t('config.enable_katex')), _t(GI18n::t('config.enable_katex_desc')));
     $form->addInput($enableKatex);
-
-    $autoBanner = new Typecho_Widget_Helper_Form_Element_Radio('autoBanner', array(
-        '1' => _t(GI18n::t('common.enable')),
-        '0' => _t(GI18n::t('common.disable'))
-    ), '1', _t(GI18n::t('config.auto_banner')), _t(GI18n::t('config.auto_banner_desc')));
-    $form->addInput($autoBanner);
-
-    $enableIndexPage = new Typecho_Widget_Helper_Form_Element_Radio('enableIndexPage', array(
-        '1' => _t(GI18n::t('common.use')),
-        '0' => _t(GI18n::t('common.not_use'))
-    ), '0', _t(GI18n::t('config.enable_index_page')), _t(GI18n::t('config.enable_index_page_desc')));
-    $form->addInput($enableIndexPage);
-
-    $enableHeaderSearch = new Typecho_Widget_Helper_Form_Element_Radio('enableHeaderSearch', array(
-        '1' => _t(GI18n::t('common.enable')),
-        '0' => _t(GI18n::t('common.disable'))
-    ), '0', _t(GI18n::t('config.enable_search')), _t(GI18n::t('config.enable_search_desc')));
-    $form->addInput($enableHeaderSearch);
-
-    $articleStyle = new Typecho_Widget_Helper_Form_Element_Radio('articleStyle', array(
-        '2' => _t(GI18n::t('config.style_large')),
-        '1' => _t(GI18n::t('config.style_single')),
-        '0' => _t(GI18n::t('config.style_double'))
-    ), '0', _t(GI18n::t('config.article_style')), _t(GI18n::t('config.article_style_desc')));
-    $form->addInput($articleStyle);
-
-    $defaultArticlePath = new Typecho_Widget_Helper_Form_Element_Text('defaultArticlePath', null, 'index.php/blog', _t(GI18n::t('config.default_path')), _t(GI18n::t('config.default_path_desc')));
-    $form->addInput($defaultArticlePath);
 
     $customWidgets = new Typecho_Widget_Helper_Form_Element_Textarea('customWidgets', null, null, _t(GI18n::t('config.custom_widgets')), _t(''));
     $form->addInput($customWidgets);
@@ -699,6 +950,29 @@ function themeConfig($form)
 
     $customPjaxCallback = new Typecho_Widget_Helper_Form_Element_Textarea('customPjaxCallback', null, null, _t(GI18n::t('config.custom_pjax')), _t(GI18n::t('config.custom_pjax_desc')));
     $form->addInput($customPjaxCallback);
+
+    /* ===== Legacy section — old ICP / footer logos / UPYUN badge ===== */
+    $enableLegacy = new Typecho_Widget_Helper_Form_Element_Radio('enableLegacy', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_legacy')), _t(GI18n::t('config.enable_legacy_desc')));
+    $form->addInput($enableLegacy);
+
+    $icp = new Typecho_Widget_Helper_Form_Element_Text('icp', null, null, _t(GI18n::t('config.icp')), _t(GI18n::t('config.icp_desc')));
+    $form->addInput($icp);
+
+    $icpUrl = new Typecho_Widget_Helper_Form_Element_Text('icpUrl', null, 'https://beian.miit.gov.cn', _t(GI18n::t('config.icp_url')), _t(GI18n::t('config.icp_url_desc')));
+    $form->addInput($icpUrl);
+
+    $footerLOGO = new Typecho_Widget_Helper_Form_Element_Text('footerLOGO', null, null, _t(GI18n::t('config.footer_logo')), _t(GI18n::t('config.footer_logo_desc')));
+    $form->addInput($footerLOGO);
+
+    $enableUPYUNLOGO = new Typecho_Widget_Helper_Form_Element_Radio('enableUPYUNLOGO', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.enable_upyun')), _t(GI18n::t('config.enable_upyun_desc')));
+    $form->addInput($enableUPYUNLOGO);
+    /* ============================================================ */
 
     $advanceSetting = new Typecho_Widget_Helper_Form_Element_Textarea('advanceSetting', null, null, _t(GI18n::t('config.advance_setting')), _t(GI18n::t('config.advance_setting_desc')));
     $form->addInput($advanceSetting);

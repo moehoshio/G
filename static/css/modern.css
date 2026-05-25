@@ -179,7 +179,11 @@ footer {
 }
 
 #widgets .widget {
-    background: var(--glass-bg);
+    /* Use background-color (not the `background` shorthand) so we don't
+       reset background-size/repeat/position on widgets that set their own
+       background-image inline (e.g. .widget-photo uses background-size:
+       contain from G.css to auto-fit the user's photo into the 7rem tile). */
+    background-color: var(--glass-bg);
     -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
     backdrop-filter: var(--glass-blur) saturate(180%);
     border: 1px solid var(--glass-border);

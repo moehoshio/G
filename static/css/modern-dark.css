@@ -60,7 +60,8 @@ footer {
 }
 
 #widgets .widget {
-    background: rgba(44, 42, 42, 0.75);
+    /* background-color (not shorthand) — see comment in modern.css. */
+    background-color: rgba(44, 42, 42, 0.75);
     border-color: rgba(255, 255, 255, 0.08);
 }
 

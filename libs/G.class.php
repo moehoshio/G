@@ -720,7 +720,7 @@ class G
             $styleParts = array('--footer-grid-cols: ' . $gridCols);
             if ($gridRows > 0) {
                 $styleParts[] = '--footer-grid-rows: ' . $gridRows;
-                $styleParts[] = 'grid-template-rows: repeat(' . $gridRows . ', minmax(1.5rem, auto))';
+                $styleParts[] = 'grid-template-rows: repeat(' . $gridRows . ', auto)';
             }
             $style = htmlspecialchars(implode('; ', $styleParts), ENT_QUOTES);
             $rowsAttr = $gridRows > 0 ? ' data-rows="' . $gridRows . '"' : '';

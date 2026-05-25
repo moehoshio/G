@@ -59,6 +59,8 @@ return [
     'config.favicon_desc' => '在這裡填入一個圖片 URL 地址，以在網站標題前加上一個 LOGO',
     'config.build_year' => '建站年份',
     'config.build_year_desc' => '什麼時候開始建站的呀',
+    'config.copyright_format' => '底部版權聲明格式',
+    'config.copyright_format_desc' => '自訂底部顯示的版權文字。留空則使用預設值 <code>{years} {copy} {siteName}</code>。<br/>可用佔位符：<br/><code>{startYear}</code> — 建站年份<br/><code>{currentYear}</code> — 當前年份<br/><code>{years}</code> — 智慧年份範圍：<code>2010 - 2025</code>，若兩者相同則僅顯示一個年份<br/><code>{siteName}</code> — 網站名稱<br/><code>{siteUrl}</code> — 網站網址<br/><code>{copy}</code> — &copy; 符號<br/>支援 HTML，例如：<code>{years} {copy} &lt;a href="{siteUrl}"&gt;{siteName}&lt;/a&gt;</code>。',
     'config.cdn' => '是否開啟靜態資源CDN加速',
     'config.cdn_desc' => '填寫加速域名或者jsdelivr或者sourcestorage，留空則使用本地檔案</br>注意：新版本剛剛發佈時，可能CDN不會即時更新',
     'config.icp' => 'ICP備案號',

@@ -22,7 +22,7 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
         <?php if ($this->options->enableLegacy && trim(G::$config['footerCustom']) === ''): ?>
         <span class="left"><a class="icp" href="<?php $this->options->icpUrl(); ?>" rel="noopener noreferrer"><?php echo G::getICP(); ?></a></span>
         <?php endif; ?>
-        <span class="right"><?php echo $this->options->buildYear . " - " . date("Y"); ?> &copy <?php $this->options->title(); ?></span>
+        <span class="right"><?php echo G::renderCopyright(); ?></span>
     </p>
 </footer>
 </div>

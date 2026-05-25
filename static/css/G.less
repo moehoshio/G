@@ -597,7 +597,26 @@ footer {
 #footer-content {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: stretch;
+  gap: 10px;
+}
+
+#footer-sponsor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#footer-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  flex: 0 0 auto;
+  min-width: 0;
+
+  #footer-meta {
+    margin-top: 8px;
+  }
 }
 
 #footer-nav {
@@ -2697,6 +2716,15 @@ span#toggleOwO {
   #footer-content {
     margin-bottom: 10px;
     flex-wrap: wrap;
+  }
+
+  #footer-sponsor {
+    flex: 1 1 100%;
+  }
+
+  #footer-side {
+    flex: 1 1 100%;
+    align-items: stretch;
   }
 
   #footer-nav {

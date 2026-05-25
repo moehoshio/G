@@ -148,6 +148,19 @@ footer {
     background-clip: text;
 }
 
+.PAP-IMG-Banner div h1 {
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: #fff;
+    background-clip: unset;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.PAP-IMG-Banner div p,
+.PAP-IMG-Banner div p a {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
 .PAP-content h1::after,
 .PAP-content h2::after,
 .PAP-content h3::after {

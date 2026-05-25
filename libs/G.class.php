@@ -540,8 +540,10 @@ class G
      *   - 图片：             ![alt](src)
      *   - 图片链接：         [![alt](src)](url)
      *   - 新页面打开扩展：   在 ](url) 之后追加 {newtab} 或 {_blank}
+     *   - 原始 HTML：        <a href="url"><img src="..."></a>{newtab?}
      *   - 内置 token：       {upyun}（又拍云联盟 logo + 链接，会被首先展开）
-     *   - 佔位空白：         {air} 或 {air:N}（产生 N 个空白佔位元素）
+     *   - 佔位空白：         {air} 或 {air:N}（产生 N 个空白佔位元素；
+     *                        与 {cell} 配合时自动跨 N 行）
      *   - 网格定位：         在行尾追加 {cell:r,c} 或 {cell:r,c,rs,cs}
      *                        （仅在使用 {grid:...} 容器指令时生效）
      *
@@ -556,6 +558,7 @@ class G
 
         // 解析尾部的网格定位指令 {cell:r,c[,rs,cs]}，先剥离再渲染内容
         $cellStyle = '';
+        $cellHasRowSpan = false;
         if (preg_match('/\s*\{cell:\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+)\s*,\s*(\d+))?\s*\}\s*$/', $line, $cm)) {
             $row = max(1, (int)$cm[1]);
             $col = max(1, (int)$cm[2]);
@@ -568,11 +571,26 @@ class G
                 $cs = max(1, (int)$cm[4]);
                 $styles[] = 'grid-row-end: span ' . $rs;
                 $styles[] = 'grid-column-end: span ' . $cs;
+                $cellHasRowSpan = true;
             }
             $cellStyle = ' style="' . htmlspecialchars(implode('; ', $styles), ENT_QUOTES) . '"';
             $line = trim(preg_replace('/\s*\{cell:[^}]*\}\s*$/', '', $line));
             if ($line === '')
                 return '';
+        }
+
+        // 当 {air:N} 与 {cell} 结合使用但未手动指定行跨度时，自动跨 N 行
+        if ($cellStyle !== '' && !$cellHasRowSpan && preg_match('/^\{air(?::(\d+))?\}$/i', $line, $airMatch)) {
+            $airSize = isset($airMatch[1]) && $airMatch[1] !== '' ? max(1, (int)$airMatch[1]) : 1;
+            if ($airSize > 1) {
+                // 重建 cellStyle，追加 grid-row-end: span N
+                $cellStyle = preg_replace(
+                    '/style="([^"]*)"/',
+                    'style="$1; grid-row-end: span ' . $airSize . '"',
+                    $cellStyle
+                );
+            }
+            return '<span class="footer-grid-cell footer-air"' . $cellStyle . '></span>';
         }
 
         $inner = self::renderFooterCustomInner($line);
@@ -636,6 +654,22 @@ class G
             return '<img alt="' . $alt . '" src="' . $src . '"/>';
         }
 
+        // 原始 HTML（允许 <a>/<img>/<span> 标签），可追加 {newtab}
+        if (preg_match('/^(<(?:a|img|span)\s[^>]*>.*<\/(?:a|img|span)>|<img\s[^>]*\/?>)\s*(\{(newtab|_blank)\})?\s*$/is', $line, $m)) {
+            $html = $m[1];
+            $newtab = !empty($m[2]);
+            if ($newtab) {
+                // 为 <a> 标签添加 target="_blank" rel="noopener noreferrer"
+                $html = preg_replace(
+                    '/<a(\s)/i',
+                    '<a target="_blank" rel="noopener noreferrer"$1',
+                    $html,
+                    1
+                );
+            }
+            return $html;
+        }
+
         // 纯文本
         return '<span>' . htmlspecialchars($line, ENT_QUOTES) . '</span>';
     }
@@ -684,8 +718,10 @@ class G
 
         if ($gridCols > 0) {
             $styleParts = array('--footer-grid-cols: ' . $gridCols);
-            if ($gridRows > 0)
+            if ($gridRows > 0) {
                 $styleParts[] = '--footer-grid-rows: ' . $gridRows;
+                $styleParts[] = 'grid-template-rows: repeat(' . $gridRows . ', minmax(1.5rem, auto))';
+            }
             $style = htmlspecialchars(implode('; ', $styleParts), ENT_QUOTES);
             $rowsAttr = $gridRows > 0 ? ' data-rows="' . $gridRows . '"' : '';
             return '<div class="footer-grid" data-cols="' . $gridCols . '"' . $rowsAttr

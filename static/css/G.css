@@ -526,6 +526,7 @@ footer p {
 }
 #footer-sponsor .footer-air {
   display: block;
+  min-height: 1.5rem;
   pointer-events: none;
 }
 #articles {

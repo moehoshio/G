@@ -23,6 +23,10 @@ class G
         'background' => '',
         'themeColor' => '',
         'headerColor' => '',
+        'secondaryColor' => '',
+        'alertColor' => '',
+        'hoverColor' => '',
+        'enableFrostedGlass' => '',
         'themeRadius' => '',
         'themeShadow' => '',
         'autoBanner' => '',
@@ -97,9 +101,36 @@ class G
      */
     public static function setCSSValues()
     {
+        $themeColorRaw = self::$config["themeColor"] !== '' ? self::$config["themeColor"] : '#07F';
+        $secondaryColorRaw = self::$config["secondaryColor"] !== '' ? self::$config["secondaryColor"] : '#6A6A6A';
+        $alertColorRaw = self::$config["alertColor"] !== '' ? self::$config["alertColor"] : '#E74C3C';
+
+        // Required colors: never treated as "auto"
+        $themeColor = self::resolveColor($themeColorRaw, $themeColorRaw);
+        $secondaryColor = self::resolveColor($secondaryColorRaw, $themeColorRaw);
+        $alertColor = self::resolveColor($alertColorRaw, $themeColorRaw);
+
+        // Optional colors: support "auto" (or empty), derived from required colors
+        $headerColor = self::resolveColor(self::$config["headerColor"], $secondaryColorRaw, 'header');
+        $hoverColor = self::resolveColor(self::$config["hoverColor"], $themeColorRaw, 'hover');
+
+        $glass = self::$config["enableFrostedGlass"] == 1;
+        $glassBlur = $glass ? 'blur(12px) saturate(140%)' : 'none';
+        $glassBg = $glass ? 'rgba(255, 255, 255, 0.55)' : 'transparent';
+
         $result = "html {
-            --theme-color: " . self::$config["themeColor"] . ";
-            --header-color: " . self::$config["headerColor"] . ";
+            --theme-color: " . $themeColor['solid'] . ";
+            --theme-color-bg: " . $themeColor['bg'] . ";
+            --secondary-color: " . $secondaryColor['solid'] . ";
+            --secondary-color-bg: " . $secondaryColor['bg'] . ";
+            --alert-color: " . $alertColor['solid'] . ";
+            --alert-color-bg: " . $alertColor['bg'] . ";
+            --header-color: " . $headerColor['bg'] . ";
+            --header-color-solid: " . $headerColor['solid'] . ";
+            --hover-color: " . $hoverColor['solid'] . ";
+            --hover-color-bg: " . $hoverColor['bg'] . ";
+            --theme-glass-blur: " . $glassBlur . ";
+            --theme-glass-bg: " . $glassBg . ";
             --theme-radius: " . self::$config["themeRadius"] . ";
             --theme-shadow: " . self::getBoxShadow(self::$config["themeShadow"]) . ";
         ";
@@ -112,7 +143,211 @@ class G
         if (isset(self::$advanceConfig['customHeaderOffsetY']))
             $result .= "    --theme-header-offset-y: " . self::$advanceConfig['customHeaderOffsetY'] . ";\n    ";
         $result .= "    }\n";
+        if ($glass) {
+            // Frosted-glass effect applied wherever --header-color is used as the background.
+            // The original CSS rules already paint the background; we layer the blur on top.
+            $result .= "
+            #header, #widgets .widget, .article-banner, .pap-wrapper, .toolbar, #footer {
+                -webkit-backdrop-filter: var(--theme-glass-blur);
+                backdrop-filter: var(--theme-glass-blur);
+            }
+            ";
+        }
+        // Apply new color variables to common interaction states so they're not dead config.
+        // Existing site CSS is untouched; these are additive overrides that respect user values.
+        $result .= "
+            a:hover, #header-content-right nav a:hover, #footer-nav a:hover,
+            a.next:hover, a.prev:hover, #cancel-comment-reply-link:hover,
+            .toolbar-btn:hover, .toc-list li:hover {
+                color: var(--hover-color);
+            }
+            .shortcode-warn, .shortcode-notice.alert {
+                border-left-color: var(--alert-color) !important;
+            }
+            .shortcode-download a:hover, #tag-cloud li a:hover {
+                border-color: var(--secondary-color);
+            }
+            #header { background: var(--header-color); }
+            ";
         return $result;
+    }
+
+    /**
+     * 解析颜色配置值
+     *
+     * 支援：
+     *  - 单色（hex、rgb、命名色）
+     *  - 多色逗号分隔 -> linear-gradient
+     *  - "auto" 或 空 -> 从来源色派生
+     *
+     * @param string $value 配置值
+     * @param string $sourceColor 当 value 为 auto / 空 时用于派生的来源色（已是单色）
+     * @param string $mode 派生模式：'hover'|'header'|''（默认与 source 一致）
+     * @return array{solid:string, bg:string, isGradient:bool, isAuto:bool}
+     */
+    public static function resolveColor($value, $sourceColor, $mode = '')
+    {
+        $value = is_string($value) ? trim($value) : '';
+        $isAuto = ($value === '' || strcasecmp($value, 'auto') === 0);
+
+        if ($isAuto) {
+            $derived = self::deriveAutoColor(self::extractFirstColor($sourceColor), $mode);
+            return [
+                'solid' => $derived,
+                'bg'    => $derived,
+                'isGradient' => false,
+                'isAuto' => true,
+            ];
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode(',', $value)), function ($s) {
+            return $s !== '';
+        }));
+
+        if (count($parts) >= 2) {
+            $gradient = 'linear-gradient(135deg, ' . implode(', ', $parts) . ')';
+            return [
+                'solid' => $parts[0],
+                'bg'    => $gradient,
+                'isGradient' => true,
+                'isAuto' => false,
+            ];
+        }
+
+        $solid = count($parts) ? $parts[0] : $value;
+        return [
+            'solid' => $solid,
+            'bg'    => $solid,
+            'isGradient' => false,
+            'isAuto' => false,
+        ];
+    }
+
+    /**
+     * 从一个颜色字符串中提取第一段颜色（用于派生计算）
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function extractFirstColor($value)
+    {
+        if (!is_string($value) || $value === '') return '#07F';
+        $parts = array_map('trim', explode(',', $value));
+        return $parts[0] !== '' ? $parts[0] : '#07F';
+    }
+
+    /**
+     * 根据来源色派生 auto 颜色
+     *
+     * @param string $hex 来源色（hex 字符串，例如 "#07F" 或 "#0077FF"）
+     * @param string $mode 'hover' 提亮、 'header' 降饱和加深，其他原样返回
+     * @return string
+     */
+    public static function deriveAutoColor($hex, $mode = '')
+    {
+        $rgb = self::hexToRgb($hex);
+        if ($rgb === null) {
+            // 派生失败：使用一组合理的默认值
+            switch ($mode) {
+                case 'header': return '#6A6A6A';
+                case 'hover':  return '#3399FF';
+                default:       return $hex;
+            }
+        }
+
+        list($r, $g, $b) = $rgb;
+        list($h, $s, $l) = self::rgbToHsl($r, $g, $b);
+
+        switch ($mode) {
+            case 'hover':
+                // 悬停色：在主题色基础上轻微提亮
+                $l = min(1.0, $l + 0.12);
+                $s = min(1.0, $s + 0.05);
+                break;
+            case 'header':
+                // 头部色：降低饱和、整体偏暗，避免太刺眼
+                $s = max(0.0, $s - 0.35);
+                $l = min(0.55, max(0.25, $l - 0.10));
+                break;
+            default:
+                // 默认轻微调整
+                $l = min(1.0, $l + 0.08);
+                break;
+        }
+
+        list($r2, $g2, $b2) = self::hslToRgb($h, $s, $l);
+        return sprintf('#%02X%02X%02X', $r2, $g2, $b2);
+    }
+
+    /**
+     * Hex -> RGB（支持 #RGB / #RRGGBB，大小写不敏感）
+     *
+     * @param string $hex
+     * @return array{0:int,1:int,2:int}|null
+     */
+    public static function hexToRgb($hex)
+    {
+        if (!is_string($hex)) return null;
+        $hex = trim($hex);
+        if ($hex === '' || $hex[0] !== '#') return null;
+        $hex = substr($hex, 1);
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+        if (strlen($hex) !== 6 || !ctype_xdigit($hex)) return null;
+        return [
+            hexdec(substr($hex, 0, 2)),
+            hexdec(substr($hex, 2, 2)),
+            hexdec(substr($hex, 4, 2)),
+        ];
+    }
+
+    /**
+     * RGB -> HSL（各分量均为 0-1）
+     */
+    public static function rgbToHsl($r, $g, $b)
+    {
+        $r /= 255; $g /= 255; $b /= 255;
+        $max = max($r, $g, $b); $min = min($r, $g, $b);
+        $h = $s = 0; $l = ($max + $min) / 2;
+        if ($max !== $min) {
+            $d = $max - $min;
+            $s = $l > 0.5 ? $d / (2 - $max - $min) : $d / ($max + $min);
+            if ($max === $r)      $h = ($g - $b) / $d + ($g < $b ? 6 : 0);
+            else if ($max === $g) $h = ($b - $r) / $d + 2;
+            else                  $h = ($r - $g) / $d + 4;
+            $h /= 6;
+        }
+        return [$h, $s, $l];
+    }
+
+    /**
+     * HSL -> RGB（返回 0-255 整数）
+     */
+    public static function hslToRgb($h, $s, $l)
+    {
+        if ($s == 0) {
+            $r = $g = $b = $l;
+        } else {
+            $hue2rgb = function ($p, $q, $t) {
+                if ($t < 0) $t += 1;
+                if ($t > 1) $t -= 1;
+                if ($t < 1/6) return $p + ($q - $p) * 6 * $t;
+                if ($t < 1/2) return $q;
+                if ($t < 2/3) return $p + ($q - $p) * (2/3 - $t) * 6;
+                return $p;
+            };
+            $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
+            $p = 2 * $l - $q;
+            $r = $hue2rgb($p, $q, $h + 1/3);
+            $g = $hue2rgb($p, $q, $h);
+            $b = $hue2rgb($p, $q, $h - 1/3);
+        }
+        return [
+            (int) round($r * 255),
+            (int) round($g * 255),
+            (int) round($b * 255),
+        ];
     }
 
     /**

@@ -116,9 +116,230 @@ function backup() {
     ';
 }
 
+/**
+ * Inline CSS + JS for the admin color palette picker.
+ *
+ * Augments any input with class "g-color-input" with:
+ *  - a preset swatch row
+ *  - a native HTML5 <input type="color"> picker
+ *  - a multi-stop gradient builder (renders the original text input value
+ *    as comma-separated hex colours: e.g. "#07F, #F09, #FC0")
+ *  - an "Auto" checkbox for inputs with class "g-color-optional"
+ *
+ * Returns a string ready to be echoed inside a Typecho admin page.
+ */
+function gPalettePickerAssets()
+{
+    ob_start();
+    ?>
+    <style>
+    .g-palette { margin: 6px 0 14px 0; padding: 10px 12px; border: 1px solid #e3e3e3; border-radius: 6px; background: #fafafa; font-size: 13px; }
+    .g-palette-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .g-palette-row:last-child { margin-bottom: 0; }
+    .g-palette-label { color: #666; min-width: 64px; }
+    .g-palette-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+    .g-palette-swatch { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; padding: 0; }
+    .g-palette-swatch:hover { transform: scale(1.1); }
+    .g-palette-preview { width: 80px; height: 28px; border: 1px solid #ccc; border-radius: 4px; }
+    .g-palette-stops { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .g-palette-stop { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
+    .g-palette-stop input[type=color] { width: 28px; height: 24px; border: none; background: none; padding: 0; cursor: pointer; }
+    .g-palette-stop button { border: none; background: transparent; color: #c33; cursor: pointer; padding: 0 2px; }
+    .g-palette-actions button { margin-right: 6px; padding: 2px 8px; font-size: 12px; cursor: pointer; }
+    .g-palette-auto { margin-left: 4px; }
+    .g-palette[data-auto="1"] .g-palette-row.g-palette-editor { opacity: 0.45; pointer-events: none; }
+    </style>
+    <script>
+    (function(){
+        var PRESETS = ['#07F','#3399FF','#00C49A','#E74C3C','#F39C12','#9B59B6','#34495E','#6A6A6A','#FFFFFF','#000000'];
+
+        function parseValue(val){
+            val = (val || '').trim();
+            if (val === '' || val.toLowerCase() === 'auto') return { auto: true, stops: [] };
+            var stops = val.split(',').map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });
+            return { auto: false, stops: stops };
+        }
+        function toHex(v){
+            if (!v) return '#07F';
+            v = v.trim();
+            if (v[0] === '#') return v;
+            // Map a few common named/rgb forms to a usable hex; fall back to default.
+            var m = v.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+            if (m) {
+                return '#' + [m[1],m[2],m[3]].map(function(n){
+                    var s = parseInt(n,10).toString(16);
+                    return s.length === 1 ? '0'+s : s;
+                }).join('').toUpperCase();
+            }
+            return '#07F';
+        }
+        function serialize(state){
+            if (state.auto) return 'auto';
+            if (!state.stops.length) return '';
+            return state.stops.join(', ');
+        }
+        function gradientCss(stops){
+            if (!stops.length) return 'transparent';
+            if (stops.length === 1) return stops[0];
+            return 'linear-gradient(135deg, ' + stops.join(', ') + ')';
+        }
+
+        function buildWidget(input){
+            var optional = input.classList.contains('g-color-optional');
+            var state = parseValue(input.value);
+            if (!state.auto && !state.stops.length) state.stops = ['#07F'];
+
+            var box = document.createElement('div');
+            box.className = 'g-palette';
+
+            // --- Preset swatch row ---
+            var presetRow = document.createElement('div');
+            presetRow.className = 'g-palette-row';
+            var presetLabel = document.createElement('span');
+            presetLabel.className = 'g-palette-label';
+            presetLabel.textContent = '<?php echo addslashes(GI18n::t("config.palette_preset")); ?>';
+            presetRow.appendChild(presetLabel);
+
+            var swatches = document.createElement('div');
+            swatches.className = 'g-palette-swatches';
+            PRESETS.forEach(function(c){
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'g-palette-swatch';
+                b.style.background = c;
+                b.title = c;
+                b.addEventListener('click', function(){
+                    state.auto = false;
+                    state.stops = [c];
+                    sync();
+                });
+                swatches.appendChild(b);
+            });
+            presetRow.appendChild(swatches);
+            box.appendChild(presetRow);
+
+            // --- Auto toggle (optional colors only) ---
+            if (optional) {
+                var autoRow = document.createElement('div');
+                autoRow.className = 'g-palette-row';
+                var autoLabel = document.createElement('label');
+                autoLabel.className = 'g-palette-auto';
+                var autoCb = document.createElement('input');
+                autoCb.type = 'checkbox';
+                autoCb.checked = !!state.auto;
+                autoCb.addEventListener('change', function(){
+                    state.auto = autoCb.checked;
+                    if (!state.auto && !state.stops.length) state.stops = ['#07F'];
+                    sync();
+                });
+                autoLabel.appendChild(autoCb);
+                autoLabel.appendChild(document.createTextNode(' <?php echo addslashes(GI18n::t("config.palette_auto")); ?>'));
+                autoRow.appendChild(autoLabel);
+                box.appendChild(autoRow);
+            }
+
+            // --- Gradient stops editor ---
+            var editorRow = document.createElement('div');
+            editorRow.className = 'g-palette-row g-palette-editor';
+            var editorLabel = document.createElement('span');
+            editorLabel.className = 'g-palette-label';
+            editorLabel.textContent = '<?php echo addslashes(GI18n::t("config.palette_stops")); ?>';
+            editorRow.appendChild(editorLabel);
+
+            var stopsWrap = document.createElement('div');
+            stopsWrap.className = 'g-palette-stops';
+            editorRow.appendChild(stopsWrap);
+
+            function renderStops(){
+                stopsWrap.innerHTML = '';
+                state.stops.forEach(function(c, idx){
+                    var stop = document.createElement('span');
+                    stop.className = 'g-palette-stop';
+                    var picker = document.createElement('input');
+                    picker.type = 'color';
+                    picker.value = toHex(c);
+                    picker.addEventListener('input', function(){
+                        state.stops[idx] = picker.value.toUpperCase();
+                        sync(true);
+                    });
+                    stop.appendChild(picker);
+                    if (state.stops.length > 1) {
+                        var del = document.createElement('button');
+                        del.type = 'button';
+                        del.textContent = '×';
+                        del.title = '<?php echo addslashes(GI18n::t("config.palette_remove_stop")); ?>';
+                        del.addEventListener('click', function(){
+                            state.stops.splice(idx, 1);
+                            sync();
+                        });
+                        stop.appendChild(del);
+                    }
+                    stopsWrap.appendChild(stop);
+                });
+            }
+
+            var actions = document.createElement('div');
+            actions.className = 'g-palette-actions';
+            var addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = '+ <?php echo addslashes(GI18n::t("config.palette_add_stop")); ?>';
+            addBtn.addEventListener('click', function(){
+                state.auto = false;
+                state.stops.push(state.stops.length ? state.stops[state.stops.length - 1] : '#07F');
+                sync();
+            });
+            actions.appendChild(addBtn);
+            editorRow.appendChild(actions);
+            box.appendChild(editorRow);
+
+            // --- Preview row ---
+            var prevRow = document.createElement('div');
+            prevRow.className = 'g-palette-row';
+            var prevLabel = document.createElement('span');
+            prevLabel.className = 'g-palette-label';
+            prevLabel.textContent = '<?php echo addslashes(GI18n::t("config.palette_preview")); ?>';
+            prevRow.appendChild(prevLabel);
+            var preview = document.createElement('div');
+            preview.className = 'g-palette-preview';
+            prevRow.appendChild(preview);
+            box.appendChild(prevRow);
+
+            function sync(stopsOnly){
+                if (!stopsOnly) renderStops();
+                input.value = serialize(state);
+                input.dispatchEvent(new Event('change'));
+                preview.style.background = state.auto ? 'repeating-linear-gradient(45deg,#ddd,#ddd 6px,#fff 6px,#fff 12px)' : gradientCss(state.stops);
+                box.setAttribute('data-auto', state.auto ? '1' : '0');
+            }
+
+            input.parentNode.insertBefore(box, input.nextSibling);
+            renderStops();
+            sync(true);
+        }
+
+        function init(){
+            var inputs = document.querySelectorAll('input.g-color-input');
+            for (var i = 0; i < inputs.length; i++) {
+                if (inputs[i].dataset.gPaletteInit) continue;
+                inputs[i].dataset.gPaletteInit = '1';
+                try { buildWidget(inputs[i]); } catch(e) { /* ignore */ }
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
 function themeConfig($form)
 {
     echo "<link rel='stylesheet' href='".G::staticUrl('static/css/Admin/S.min.css')."'/>";
+    echo gPalettePickerAssets();
     echo "<h2>".GI18n::t('config.title')."</h2>";
 
     $lang = new Typecho_Widget_Helper_Form_Element_Select('lang', array_merge(
@@ -152,10 +373,35 @@ function themeConfig($form)
     $form->addInput($repeatBackground);
 
     $themeColor = new Typecho_Widget_Helper_Form_Element_Text('themeColor', null, '#07F', _t(GI18n::t('config.theme_color')), _t(GI18n::t('config.theme_color_desc')));
+    $themeColor->input->setAttribute('class', 'g-color-input g-color-required');
+    $themeColor->input->setAttribute('data-g-color', 'themeColor');
     $form->addInput($themeColor);
 
-    $headerColor = new Typecho_Widget_Helper_Form_Element_Text('headerColor', null, '#6A6A6A', _t(GI18n::t('config.header_color')), _t(GI18n::t('config.header_color_desc')));
+    $secondaryColor = new Typecho_Widget_Helper_Form_Element_Text('secondaryColor', null, '#6A6A6A', _t(GI18n::t('config.secondary_color')), _t(GI18n::t('config.secondary_color_desc')));
+    $secondaryColor->input->setAttribute('class', 'g-color-input g-color-required');
+    $secondaryColor->input->setAttribute('data-g-color', 'secondaryColor');
+    $form->addInput($secondaryColor);
+
+    $alertColor = new Typecho_Widget_Helper_Form_Element_Text('alertColor', null, '#E74C3C', _t(GI18n::t('config.alert_color')), _t(GI18n::t('config.alert_color_desc')));
+    $alertColor->input->setAttribute('class', 'g-color-input g-color-required');
+    $alertColor->input->setAttribute('data-g-color', 'alertColor');
+    $form->addInput($alertColor);
+
+    $headerColor = new Typecho_Widget_Helper_Form_Element_Text('headerColor', null, 'auto', _t(GI18n::t('config.header_color')), _t(GI18n::t('config.header_color_desc')));
+    $headerColor->input->setAttribute('class', 'g-color-input g-color-optional');
+    $headerColor->input->setAttribute('data-g-color', 'headerColor');
     $form->addInput($headerColor);
+
+    $hoverColor = new Typecho_Widget_Helper_Form_Element_Text('hoverColor', null, 'auto', _t(GI18n::t('config.hover_color')), _t(GI18n::t('config.hover_color_desc')));
+    $hoverColor->input->setAttribute('class', 'g-color-input g-color-optional');
+    $hoverColor->input->setAttribute('data-g-color', 'hoverColor');
+    $form->addInput($hoverColor);
+
+    $enableFrostedGlass = new Typecho_Widget_Helper_Form_Element_Radio('enableFrostedGlass', array(
+        '1' => _t(GI18n::t('common.enable')),
+        '0' => _t(GI18n::t('common.disable'))
+    ), '0', _t(GI18n::t('config.frosted_glass')), _t(GI18n::t('config.frosted_glass_desc')));
+    $form->addInput($enableFrostedGlass);
 
     $themeRadius = new Typecho_Widget_Helper_Form_Element_Text('themeRadius', null, '30px', _t(GI18n::t('config.theme_radius')), _t(GI18n::t('config.theme_radius_desc')));
     $form->addInput($themeRadius);

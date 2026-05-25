@@ -7,23 +7,25 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
         <div id="footer-sponsor">
             <?php echo G::renderFooterCustom(); ?>
         </div>
-        <nav id="footer-nav">
-            <a href="<?php Helper::options()->siteUrl() ?>" <?php if ($this->is("index")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.home'); ?></a>
-            <?php if ($this->options->enableIndexPage): ?>
-                <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is("archive") or $this->is("post")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.articles'); ?></a>
-            <?php endif; ?>
-            <?php $this->widget("Widget_Contents_Page_List")->to($pages); ?>
-            <?php while ($pages->next()): ?>
-                <a href="<?php $pages->permalink(); ?>" <?php if ($this->is("page", $pages->slug)): ?>class="nav-focus"<?php endif; ?> title="<?php $pages->title(); ?>"><?php $pages->title(); ?></a>
-            <?php endwhile; ?>
-        </nav>
+        <div id="footer-side">
+            <nav id="footer-nav">
+                <a href="<?php Helper::options()->siteUrl() ?>" <?php if ($this->is("index")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.home'); ?></a>
+                <?php if ($this->options->enableIndexPage): ?>
+                    <a href="<?php echo G::getArticlePath(); ?>" <?php if ($this->is("archive") or $this->is("post")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.articles'); ?></a>
+                <?php endif; ?>
+                <?php $this->widget("Widget_Contents_Page_List")->to($pages); ?>
+                <?php while ($pages->next()): ?>
+                    <a href="<?php $pages->permalink(); ?>" <?php if ($this->is("page", $pages->slug)): ?>class="nav-focus"<?php endif; ?> title="<?php $pages->title(); ?>"><?php $pages->title(); ?></a>
+                <?php endwhile; ?>
+            </nav>
+            <p id="footer-meta" class="clear">
+                <?php if ($this->options->enableLegacy && trim(G::$config['footerCustom']) === ''): ?>
+                <span class="left"><a class="icp" href="<?php $this->options->icpUrl(); ?>" rel="noopener noreferrer"><?php echo G::getICP(); ?></a></span>
+                <?php endif; ?>
+                <span class="right"><?php echo G::renderCopyright(); ?></span>
+            </p>
+        </div>
     </div>
-    <p id="footer-meta" class="clear">
-        <?php if ($this->options->enableLegacy && trim(G::$config['footerCustom']) === ''): ?>
-        <span class="left"><a class="icp" href="<?php $this->options->icpUrl(); ?>" rel="noopener noreferrer"><?php echo G::getICP(); ?></a></span>
-        <?php endif; ?>
-        <span class="right"><?php echo G::renderCopyright(); ?></span>
-    </p>
 </footer>
 </div>
 <div id="dark-cover"></div>

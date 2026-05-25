@@ -90,7 +90,7 @@ return [
     'config.theme_radius' => 'Border Radius',
     'config.theme_radius_desc' => 'Round or square, your choice',
     'config.default_banner' => 'Default Banner',
-    'config.default_banner_desc' => 'Use {random} placeholder in image API URLs for random images',
+    'config.default_banner_desc' => 'When using an image API, the following placeholders are re-evaluated on each occurrence: <code>{random}</code>, <code>{random:N}</code> (N-digit number), <code>{cid}</code>, <code>{slug}</code>, <code>{title}</code>, <code>{year}</code>/<code>{month}</code>/<code>{day}</code>, <code>{timestamp}</code>. e.g. <code>https://api.example.com/?id={cid}&r={random}</code>',
     'config.profile_avatar' => 'Sidebar Avatar',
     'config.profile_bg' => 'Sidebar Background',
     'config.profile_des' => 'Sidebar Bio',
@@ -146,8 +146,13 @@ return [
     'config.advance_setting' => 'Advanced Settings',
     'config.advance_setting_desc' => 'For advanced users',
     'config.lang' => 'Theme Language',
-    'config.lang_desc' => 'Select theme display language. Leave empty to auto-detect from browser',
+    'config.lang_desc' => 'Select theme display language. Leave empty to auto-detect from browser (changes are saved instantly and reload the page)',
+    'config.lang_saving' => 'Saving…',
+    'config.lang_saved' => 'Saved',
+    'config.lang_save_error' => 'Save failed',
     'config.auto_detect' => 'Auto Detect',
+    'config.footer_custom' => 'Custom Footer Content',
+    'config.footer_custom_desc' => 'One item per line. Extended Markdown syntax is supported:<br/>Text: <code>hello world</code><br/>Link: <code>[text](https://...)</code><br/>Image: <code>![alt](https://.../logo.png)</code><br/>Image link: <code>[![alt](src)](url)</code><br/>Open in new tab: append <code>{newtab}</code>, e.g. <code>[text](url){newtab}</code><br/>UPYUN affiliate logo shortcut: <code>{upyun}</code><br/>Leave blank to fall back to the legacy "Footer Logo" + UPYUN toggle.',
 
     // Common
     'common.enable' => 'Enable',

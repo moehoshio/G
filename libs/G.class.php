@@ -38,6 +38,7 @@ class G
         'advanceSetting' => '',
         'footerLOGO' => '',
         'enableUPYUNLOGO' => '',
+        'footerCustom' => '',
         'enableDefaultTOC' => '',
         'autoNightSpan' => '',
         'autoNightMode' => '',
@@ -362,6 +363,61 @@ class G
     }
 
     /**
+     * 替换头图 URL 中的占位符
+     *
+     * 支持的占位符：
+     *   {random}        每次出现都生成一个新的随机字符串（4 位数字）
+     *   {random:N}      指定位数的随机数字（N 为 1~12）
+     *   {cid}           文章 cid
+     *   {slug}          文章 slug
+     *   {title}         文章标题（URL 编码后）
+     *   {year}/{month}/{day} 文章发布日期
+     *   {timestamp}     当前时间戳（毫秒级，确保每次调用都不同）
+     *
+     * @param String $url
+     * @param Object|null $post
+     * @return String
+     */
+    public static function applyBannerPlaceholders($url, $post = null)
+    {
+        if ($url === null || $url === '')
+            return $url;
+
+        // 每次出现的 {random} 都重新生成一次（{random:N} 指定位数）
+        $url = preg_replace_callback(
+            '/\{random(?::(\d{1,2}))?\}/',
+            function ($m) {
+                $len = isset($m[1]) && $m[1] !== '' ? max(1, min(12, (int)$m[1])) : 4;
+                $min = (int)str_pad('1', $len, '0');
+                $max = (int)str_pad('9', $len, '9');
+                return (string)mt_rand($min, $max);
+            },
+            $url
+        );
+
+        // 时间戳占位符（毫秒）
+        if (strpos($url, '{timestamp}') !== false) {
+            $url = str_replace('{timestamp}', (string)round(microtime(true) * 1000), $url);
+        }
+
+        if ($post !== null) {
+            $replacements = array();
+            if (isset($post->cid))     $replacements['{cid}']   = (string)$post->cid;
+            if (isset($post->slug))    $replacements['{slug}']  = rawurlencode((string)$post->slug);
+            if (isset($post->title))   $replacements['{title}'] = rawurlencode((string)$post->title);
+            if (isset($post->created)) {
+                $replacements['{year}']  = date('Y', $post->created);
+                $replacements['{month}'] = date('m', $post->created);
+                $replacements['{day}']   = date('d', $post->created);
+            }
+            if (!empty($replacements))
+                $url = strtr($url, $replacements);
+        }
+
+        return $url;
+    }
+
+    /**
      * 获取文章头图
      *
      * @param Object $post
@@ -374,11 +430,11 @@ class G
         $mirageBanner = $post->fields->thumb;
 
         if (isset($banner) && $banner != '')
-            return str_replace("{random}", (string)rand(1000, 9999), $post->fields->imgurl);
+            return self::applyBannerPlaceholders($banner, $post);
         if (isset($mirageBanner) && $mirageBanner != '')
-            return str_replace("{random}", (string)rand(1000, 9999), $mirageBanner);
+            return self::applyBannerPlaceholders($mirageBanner, $post);
         if (self::$config['defaultBanner'] != '')
-            return str_replace("{random}", (string)rand(1000, 9999), self::$config['defaultBanner']);
+            return self::applyBannerPlaceholders(self::$config['defaultBanner'], $post);
         if (self::$config['autoBanner'] == 0)
             return 'none';
 
@@ -402,9 +458,9 @@ class G
         $mirageBanner = $post->fields->banner;
 
         if (isset($banner) && $banner != '')
-            return $post->fields->imgurl;
+            return self::applyBannerPlaceholders($banner, $post);
         else if (isset($mirageBanner) && $mirageBanner != '')
-            return $mirageBanner;
+            return self::applyBannerPlaceholders($mirageBanner, $post);
         return 'none';
     }
 
@@ -465,6 +521,83 @@ class G
             if ($img != '')
                 $logos = $logos . '<img alt="logo" src="' . $img . '" />';
         return $logos;
+    }
+
+    /**
+     * 解析单条「自定义底部」项目，支持以下扩展 Markdown 语法：
+     *   - 纯文本：           hello world
+     *   - 链接：             [text](url)
+     *   - 图片：             ![alt](src)
+     *   - 图片链接：         [![alt](src)](url)
+     *   - 新页面打开扩展：   在 ](url) 之后追加 {newtab} 或 {_blank}
+     *   - 内置 token：       {upyun}（又拍云联盟 logo + 链接，会被首先展开）
+     *
+     * @param String $line 原始一行
+     * @return String 渲染后的 HTML（已转义）
+     */
+    public static function renderFooterCustomItem($line)
+    {
+        $line = trim($line);
+        if ($line === '')
+            return '';
+
+        // 内置 token: {upyun}
+        if ($line === '{upyun}') {
+            return '<a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" rel="noopener noreferrer" target="_blank">'
+                 . '<img alt="upyun" src="' . htmlspecialchars(self::staticUrl('static/img/upyun.png'), ENT_QUOTES) . '"/></a>';
+        }
+
+        // 图片链接 [![alt](src)](url){newtab?}
+        if (preg_match('/^\[!\[([^\]]*)\]\(([^)\s]+)\)\]\(([^)\s]+)\)\s*(\{(newtab|_blank)\})?\s*$/', $line, $m)) {
+            $alt    = htmlspecialchars($m[1], ENT_QUOTES);
+            $src    = htmlspecialchars($m[2], ENT_QUOTES);
+            $url    = htmlspecialchars($m[3], ENT_QUOTES);
+            $newtab = !empty($m[4]);
+            $target = $newtab ? ' target="_blank" rel="noopener noreferrer"' : '';
+            return '<a href="' . $url . '"' . $target . '><img alt="' . $alt . '" src="' . $src . '"/></a>';
+        }
+
+        // 文本链接 [text](url){newtab?}
+        if (preg_match('/^\[([^\]]+)\]\(([^)\s]+)\)\s*(\{(newtab|_blank)\})?\s*$/', $line, $m)) {
+            $text   = htmlspecialchars($m[1], ENT_QUOTES);
+            $url    = htmlspecialchars($m[2], ENT_QUOTES);
+            $newtab = !empty($m[3]);
+            $target = $newtab ? ' target="_blank" rel="noopener noreferrer"' : '';
+            return '<a href="' . $url . '"' . $target . '>' . $text . '</a>';
+        }
+
+        // 图片 ![alt](src)
+        if (preg_match('/^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/', $line, $m)) {
+            $alt = htmlspecialchars($m[1], ENT_QUOTES);
+            $src = htmlspecialchars($m[2], ENT_QUOTES);
+            return '<img alt="' . $alt . '" src="' . $src . '"/>';
+        }
+
+        // 纯文本
+        return '<span>' . htmlspecialchars($line, ENT_QUOTES) . '</span>';
+    }
+
+    /**
+     * 渲染整个自定义底部内容。
+     * 若 footerCustom 为空，则回退到 legacy 行为（拼接 enableUPYUNLOGO + footerLOGO）。
+     *
+     * @return String
+     */
+    public static function renderFooterCustom()
+    {
+        $custom = self::$config['footerCustom'];
+        if ($custom === null || trim($custom) === '') {
+            // 兼容旧设置
+            return self::getFooterLogos();
+        }
+        $lines = preg_split('/\r\n|\r|\n/', $custom);
+        $html  = '';
+        foreach ($lines as $line) {
+            $rendered = self::renderFooterCustomItem($line);
+            if ($rendered !== '')
+                $html .= $rendered;
+        }
+        return $html;
     }
 
     /**

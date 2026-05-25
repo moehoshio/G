@@ -90,7 +90,7 @@ return [
     'config.theme_radius' => '主题圆角',
     'config.theme_radius_desc' => '圆还是方，由你来定',
     'config.default_banner' => '默认头图',
-    'config.default_banner_desc' => '填入图片API时，可以使用{random}来替换生成一个随机字符串以达到随机图片得效果',
+    'config.default_banner_desc' => '填入图片 API 时，可用占位符（每次出现都会重新求值）：<code>{random}</code>、<code>{random:N}</code>（N 位随机数字）、<code>{cid}</code>、<code>{slug}</code>、<code>{title}</code>、<code>{year}</code>/<code>{month}</code>/<code>{day}</code>、<code>{timestamp}</code>。例如 <code>https://api.example.com/?id={cid}&r={random}</code>',
     'config.profile_avatar' => '侧边栏头像',
     'config.profile_bg' => '侧边栏背景',
     'config.profile_des' => '侧边栏简介',
@@ -146,8 +146,13 @@ return [
     'config.advance_setting' => '高级设置',
     'config.advance_setting_desc' => '看着就很高级',
     'config.lang' => '主题语言',
-    'config.lang_desc' => '选择主题显示语言，留空则自动检测浏览器语言',
+    'config.lang_desc' => '选择主题显示语言，留空则自动检测浏览器语言（修改后会立即保存并刷新）',
+    'config.lang_saving' => '保存中…',
+    'config.lang_saved' => '已保存',
+    'config.lang_save_error' => '保存失败',
     'config.auto_detect' => '自动检测',
+    'config.footer_custom' => '自定义底部内容',
+    'config.footer_custom_desc' => '每行一项，支持扩展 Markdown 语法：<br/>文本：<code>hello world</code><br/>链接：<code>[文本](https://...)</code><br/>图片：<code>![alt](https://.../logo.png)</code><br/>图片链接：<code>[![alt](src)](url)</code><br/>新页面打开：在末尾追加 <code>{newtab}</code>，如 <code>[文本](url){newtab}</code><br/>又拍云联盟图标可直接写：<code>{upyun}</code><br/>留空则使用旧版「底部左侧 logo」与「又拍云」开关。',
 
     // Common
     'common.enable' => '开启',

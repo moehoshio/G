@@ -6,6 +6,70 @@ require_once("libs/GEditor.class.php");
 require_once("libs/I18n.class.php");
 G::init();
 GI18n::init();
+
+/**
+ * Handle AJAX request to immediately persist the theme language setting.
+ * Triggered via POST to `?GLangChange=1` with form field `lang`.
+ * Only valid lang codes (or empty for auto-detect) are accepted.
+ */
+if (isset($_GET['GLangChange']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!class_exists('Typecho_Widget') || !method_exists('Typecho_Widget', 'widget')) {
+        http_response_code(500);
+        exit('error');
+    }
+    // Require an authenticated admin user (Typecho admin session).
+    try {
+        $user = Typecho_Widget::widget('Widget_User');
+        if (!$user->hasLogin() || !$user->pass('administrator', true)) {
+            http_response_code(403);
+            exit('forbidden');
+        }
+    } catch (Exception $e) {
+        http_response_code(403);
+        exit('forbidden');
+    }
+
+    // Basic same-origin (Referer/Origin) check as CSRF defense.
+    $siteUrl  = Helper::options()->siteUrl;
+    $siteHost = parse_url($siteUrl, PHP_URL_HOST);
+    $reqOrigin = '';
+    if (!empty($_SERVER['HTTP_ORIGIN'])) {
+        $reqOrigin = $_SERVER['HTTP_ORIGIN'];
+    } else if (!empty($_SERVER['HTTP_REFERER'])) {
+        $reqOrigin = $_SERVER['HTTP_REFERER'];
+    }
+    $reqHost = $reqOrigin ? parse_url($reqOrigin, PHP_URL_HOST) : '';
+    if (!$siteHost || !$reqHost || strcasecmp($siteHost, $reqHost) !== 0) {
+        http_response_code(403);
+        exit('forbidden');
+    }
+
+    $newLang = isset($_POST['lang']) ? (string)$_POST['lang'] : '';
+    if ($newLang !== '' && !isset(GI18n::$supportedLangs[$newLang])) {
+        http_response_code(400);
+        exit('invalid');
+    }
+
+    $db  = Typecho_Db::get();
+    $row = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'));
+    if (!$row) {
+        http_response_code(404);
+        exit('no-config');
+    }
+    $value = @unserialize($row['value'], ['allowed_classes' => false]);
+    if (!is_array($value)) $value = array();
+    $value['lang'] = $newLang;
+    $db->query(
+        $db->update('table.options')
+           ->rows(array('value' => serialize($value)))
+           ->where('name = ?', 'theme:G')
+    );
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array('ok' => true, 'lang' => $newLang));
+    exit;
+}
+
 Typecho_Plugin::factory('Widget_Abstract_Contents')->excerptEx = array('GEditor', 'reply2see');
 Typecho_Plugin::factory('Widget_Abstract_Contents')->contentEx = array('GEditor', 'reply2see');
 Typecho_Plugin::factory('admin/write-post.php')->bottom = array('GEditor', 'addButton');
@@ -336,10 +400,123 @@ function gPalettePickerAssets()
     return ob_get_clean();
 }
 
+/**
+ * Inline CSS + JS for the theme settings admin page:
+ *  - Styles native <select> elements to match other inputs / buttons.
+ *  - Wires the language selector (name="lang") to autosave immediately on
+ *    change via AJAX to `?GLangChange=1`, then reloads the page so that
+ *    the new translations take effect.
+ */
+function gLangAutosaveAssets()
+{
+    $endpoint = G::$themeUrl . '?GLangChange=1';
+    $savingText = addslashes(GI18n::t('config.lang_saving'));
+    $savedText  = addslashes(GI18n::t('config.lang_saved'));
+    $errorText  = addslashes(GI18n::t('config.lang_save_error'));
+    ob_start();
+    ?>
+    <style>
+    /* Bring native <select> in line with the rest of the admin UI */
+    .typecho-option select,
+    select.g-select {
+        display: inline-block;
+        box-sizing: border-box;
+        padding: .55em .9em;
+        padding-right: 2.2em;
+        margin: 0;
+        min-width: 12em;
+        max-width: 100%;
+        background-color: #fff;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23313a46' d='M0 0l5 6 5-6z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right .8em center;
+        background-size: 10px 6px;
+        color: #43454a;
+        font-size: 14px;
+        line-height: 1.4;
+        border: 1px solid #d6d6d6;
+        border-bottom: 2px solid #444;
+        border-radius: 6px;
+        outline: 0;
+        cursor: pointer;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .typecho-option select:hover,
+    select.g-select:hover {
+        border-color: #313a46;
+    }
+    .typecho-option select:focus,
+    select.g-select:focus {
+        border-color: #313a46;
+        box-shadow: 0 0 0 3px rgba(49,58,70,0.12);
+    }
+    .g-lang-status {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 12px;
+        color: #6a6a6a;
+        opacity: 0;
+        transition: opacity .25s ease;
+    }
+    .g-lang-status.show { opacity: 1; }
+    .g-lang-status.err  { color: #c0392b; }
+    .g-lang-status.ok   { color: #2c8a4a; }
+    </style>
+    <script>
+    (function(){
+        function ready(fn){
+            if (document.readyState !== 'loading') fn();
+            else document.addEventListener('DOMContentLoaded', fn);
+        }
+        ready(function(){
+            var select = document.querySelector('select[name="lang"]');
+            if (!select) return;
+            select.classList.add('g-select');
+
+            var status = document.createElement('span');
+            status.className = 'g-lang-status';
+            select.parentNode.insertBefore(status, select.nextSibling);
+
+            function setStatus(msg, cls){
+                status.textContent = msg;
+                status.className = 'g-lang-status show ' + (cls || '');
+            }
+
+            select.addEventListener('change', function(){
+                var value = select.value;
+                setStatus('<?php echo $savingText; ?>', '');
+                var data = new FormData();
+                data.append('lang', value);
+                fetch(<?php echo json_encode($endpoint); ?>, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin'
+                }).then(function(resp){
+                    if (!resp.ok) throw new Error('http ' + resp.status);
+                    return resp.json();
+                }).then(function(){
+                    setStatus('<?php echo $savedText; ?>', 'ok');
+                    // Reload so server-rendered translations refresh.
+                    setTimeout(function(){ window.location.reload(); }, 400);
+                }).catch(function(){
+                    setStatus('<?php echo $errorText; ?>', 'err');
+                });
+            });
+        });
+    })();
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
 function themeConfig($form)
 {
     echo "<link rel='stylesheet' href='".G::staticUrl('static/css/Admin/S.min.css')."'/>";
     echo gPalettePickerAssets();
+    echo gLangAutosaveAssets();
     echo "<h2>".GI18n::t('config.title')."</h2>";
 
     $lang = new Typecho_Widget_Helper_Form_Element_Select('lang', array_merge(
@@ -429,6 +606,9 @@ function themeConfig($form)
 
     $footerLOGO = new Typecho_Widget_Helper_Form_Element_Text('footerLOGO', null, null, _t(GI18n::t('config.footer_logo')), _t(GI18n::t('config.footer_logo_desc')));
     $form->addInput($footerLOGO);
+
+    $footerCustom = new Typecho_Widget_Helper_Form_Element_Textarea('footerCustom', null, null, _t(GI18n::t('config.footer_custom')), _t(GI18n::t('config.footer_custom_desc')));
+    $form->addInput($footerCustom);
 
     $sponsorIMG = new Typecho_Widget_Helper_Form_Element_Text('sponsorIMG', null, null, _t(GI18n::t('config.sponsor_img')), _t(GI18n::t('config.sponsor_img_desc')));
     $form->addInput($sponsorIMG);

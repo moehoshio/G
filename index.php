@@ -20,7 +20,7 @@ if ($articleColumns > 6) $articleColumns = 6;
     <div id="articles" style="--article-columns: <?php echo $articleColumns; ?>;" data-columns="<?php echo $articleColumns; ?>">
         <?php $this->need('components/article.php'); ?>
     </div>
-    <div id="articles-switch" class="clear">
+    <div id="articles-switch" class="articles-switch clear">
         <?php $this->pageLink(GI18n::t('pagination.next'), 'next'); ?>
         <?php $this->pageLink(GI18n::t('pagination.prev'), 'prev'); ?>
     </div>

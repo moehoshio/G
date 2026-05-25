@@ -14,7 +14,7 @@ $this->need('components/header.php');
         <div id="articles">
             <?php $this->need('components/article.php'); ?>
         </div>
-        <div id="articles-switch" class="clear">
+        <div id="articles-switch" class="articles-switch clear">
             <?php $this->pageLink(GI18n::t('pagination.next'), 'next'); ?>
             <?php $this->pageLink(GI18n::t('pagination.prev'), 'prev'); ?>
         </div>

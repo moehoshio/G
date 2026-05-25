@@ -911,6 +911,9 @@ function themeConfig($form)
     $buildYear = new Typecho_Widget_Helper_Form_Element_Text('buildYear', null, date('Y'), _t(GI18n::t('config.build_year')), _t(GI18n::t('config.build_year_desc')));
     $form->addInput($buildYear);
 
+    $copyrightFormat = new Typecho_Widget_Helper_Form_Element_Text('copyrightFormat', null, '', _t(GI18n::t('config.copyright_format')), _t(GI18n::t('config.copyright_format_desc')));
+    $form->addInput($copyrightFormat);
+
     $cdn = new Typecho_Widget_Helper_Form_Element_Text('cdn', null, null, _t(GI18n::t('config.cdn')), _t(GI18n::t('config.cdn_desc')));
     $form->addInput($cdn);
 

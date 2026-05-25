@@ -59,6 +59,8 @@ return [
     'config.favicon_desc' => 'Enter an image URL to add a logo before the site title',
     'config.build_year' => 'Year Founded',
     'config.build_year_desc' => 'When did you start this site?',
+    'config.copyright_format' => 'Footer Copyright Format',
+    'config.copyright_format_desc' => 'Customize the copyright text shown in the footer. Leave empty to use the default <code>{years} {copy} {siteName}</code>.<br/>Available placeholders:<br/><code>{startYear}</code> — Year Founded<br/><code>{currentYear}</code> — Current year<br/><code>{years}</code> — Smart range: <code>2010 - 2025</code>, or just the year if they are the same<br/><code>{siteName}</code> — Site title<br/><code>{siteUrl}</code> — Site URL<br/><code>{copy}</code> — &copy; symbol<br/>HTML is allowed, e.g. <code>{years} {copy} &lt;a href="{siteUrl}"&gt;{siteName}&lt;/a&gt;</code>.',
     'config.cdn' => 'Enable Static Resource CDN',
     'config.cdn_desc' => 'Enter CDN domain, jsdelivr, or sourcestorage. Leave empty to use local files.</br>Note: CDN may not update immediately after new version release',
     'config.icp' => 'ICP License Number',

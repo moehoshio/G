@@ -32,6 +32,7 @@ class G
         'autoBanner' => '',
         'defaultBanner' => '',
         'buildYear' => '',
+        'copyrightFormat' => '',
         'icp' => '',
         'defaultArticlePath' => '',
         'enableIndexPage' => '',
@@ -728,6 +729,51 @@ class G
                  . ' style="' . $style . '">' . $items . '</div>';
         }
         return $items;
+    }
+
+    /**
+     * 渲染版权声明
+     *
+     * 支持的占位符:
+     *   {startYear}   建站年份
+     *   {currentYear} 当前年份
+     *   {years}       建站年份与当前年份的智能组合 (相同则只显示一个)
+     *   {siteName}    站点名称
+     *   {siteUrl}     站点地址
+     *   {copy}        © 符号
+     *
+     * @return string
+     */
+    public static function renderCopyright()
+    {
+        $options     = Helper::options();
+        $startYear   = trim((string)self::$config['buildYear']);
+        $currentYear = date('Y');
+        if ($startYear === '')
+            $startYear = $currentYear;
+
+        if ($startYear === $currentYear) {
+            $years = $startYear;
+        } else {
+            $years = $startYear . ' - ' . $currentYear;
+        }
+
+        $format = self::$config['copyrightFormat'];
+        if ($format === null || trim((string)$format) === '') {
+            // 默认格式：保持与历史版本兼容
+            $format = '{years} {copy} {siteName}';
+        }
+
+        $replacements = array(
+            '{startYear}'   => $startYear,
+            '{currentYear}' => $currentYear,
+            '{years}'       => $years,
+            '{siteName}'    => $options->title,
+            '{siteUrl}'     => $options->siteUrl,
+            '{copy}'        => '&copy;',
+        );
+
+        return strtr($format, $replacements);
     }
 
     /**

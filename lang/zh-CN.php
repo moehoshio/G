@@ -59,6 +59,8 @@ return [
     'config.favicon_desc' => '在这里填入一个图片 URL 地址, 以在网站标题前加上一个 LOGO',
     'config.build_year' => '建站年份',
     'config.build_year_desc' => '什么时候开始建站的呀',
+    'config.copyright_format' => '底部版权声明格式',
+    'config.copyright_format_desc' => '自定义底部显示的版权文字。留空则使用默认值 <code>{years} {copy} {siteName}</code>。<br/>可用占位符：<br/><code>{startYear}</code> — 建站年份<br/><code>{currentYear}</code> — 当前年份<br/><code>{years}</code> — 智能年份范围：<code>2010 - 2025</code>，若两者相同则仅显示一个年份<br/><code>{siteName}</code> — 站点名称<br/><code>{siteUrl}</code> — 站点地址<br/><code>{copy}</code> — &copy; 符号<br/>支持 HTML，例如：<code>{years} {copy} &lt;a href="{siteUrl}"&gt;{siteName}&lt;/a&gt;</code>。',
     'config.cdn' => '是否开启静态资源cdn加速',
     'config.cdn_desc' => '填写加速域名或者jsdelivr或者sourcestorage，留空则使用本地文件</br>注意: 新版本刚刚发布时，可能CDN不会及时更新',
     'config.icp' => 'ICP备案号',

@@ -698,14 +698,15 @@ function gAdminSectionsAssets()
         }
 
         ready(function(){
-            // The themeConfig page may contain multiple `form.protected`
-            // elements (Typecho's main settings form + the backup form
-            // rendered by backup()). Pick the one that actually contains
-            // typecho-option items.
-            var forms = document.querySelectorAll('form.protected');
+            // The themeConfig page may contain multiple forms (Typecho's
+            // main settings form + the backup form rendered by backup()).
+            // Pick the one inside .typecho-page-main that actually contains
+            // typecho-option items. This works for both old (form.protected)
+            // and new Typecho versions (1.2+).
             var form = null;
-            for (var fi = 0; fi < forms.length; fi++) {
-                if (forms[fi].querySelector('li.typecho-option')) { form = forms[fi]; break; }
+            var candidates = document.querySelectorAll('.typecho-page-main form');
+            for (var fi = 0; fi < candidates.length; fi++) {
+                if (candidates[fi].querySelector('li.typecho-option')) { form = candidates[fi]; break; }
             }
             if (!form) return;
             // Find the <ul> that actually holds the typecho-option items.

@@ -633,6 +633,17 @@ function gAdminSectionsAssets()
     .g-section.collapsed .g-section-toggle { transform: rotate(-90deg); }
     .g-section-body { padding: 4px 14px 10px; }
     .g-section.collapsed .g-section-body { display: none; }
+
+    /* Legacy section: sub-options greyed out when master toggle is off */
+    .g-section[data-section-key="enableLegacy"] .g-legacy-sub {
+        opacity: 0.45;
+        pointer-events: none;
+        transition: opacity .2s ease;
+    }
+    .g-section[data-section-key="enableLegacy"].g-legacy-active .g-legacy-sub {
+        opacity: 1;
+        pointer-events: auto;
+    }
     </style>
     <script>
     (function(){
@@ -755,6 +766,34 @@ function gAdminSectionsAssets()
                     nav.appendChild(a);
                 });
                 page.insertBefore(nav, page.firstChild);
+            }
+
+            // Legacy section: grey out sub-options when enableLegacy is off.
+            var legacySec = document.getElementById('g-sec-enableLegacy');
+            if (legacySec) {
+                var legacyRadios = legacySec.querySelectorAll('input[name="enableLegacy"]');
+                var legacyBody = legacySec.querySelector('.g-section-body');
+                if (legacyBody && legacyRadios.length) {
+                    // Wrap all options except the enableLegacy toggle itself
+                    var innerItems = legacyBody.querySelectorAll('li.typecho-option');
+                    for (var li = 0; li < innerItems.length; li++) {
+                        // Skip the enableLegacy field itself
+                        if (innerItems[li].querySelector('[name="enableLegacy"]')) continue;
+                        innerItems[li].classList.add('g-legacy-sub');
+                    }
+                    function syncLegacy() {
+                        var checked = legacySec.querySelector('input[name="enableLegacy"]:checked');
+                        if (checked && checked.value === '1') {
+                            legacySec.classList.add('g-legacy-active');
+                        } else {
+                            legacySec.classList.remove('g-legacy-active');
+                        }
+                    }
+                    syncLegacy();
+                    for (var ri = 0; ri < legacyRadios.length; ri++) {
+                        legacyRadios[ri].addEventListener('change', syncLegacy);
+                    }
+                }
             }
         });
     })();

@@ -90,7 +90,7 @@ return [
     'config.theme_radius' => '主題圓角',
     'config.theme_radius_desc' => '圓還是方，由你來定',
     'config.default_banner' => '預設頭圖',
-    'config.default_banner_desc' => '填入圖片API時，可以使用{random}來替換生成一個隨機字串以達到隨機圖片的效果',
+    'config.default_banner_desc' => '填入圖片 API 時，可用佔位符（每次出現都會重新求值）：<code>{random}</code>、<code>{random:N}</code>（N 位隨機數字）、<code>{cid}</code>、<code>{slug}</code>、<code>{title}</code>、<code>{year}</code>/<code>{month}</code>/<code>{day}</code>、<code>{timestamp}</code>。例如 <code>https://api.example.com/?id={cid}&r={random}</code>',
     'config.profile_avatar' => '側邊欄頭像',
     'config.profile_bg' => '側邊欄背景',
     'config.profile_des' => '側邊欄簡介',
@@ -146,8 +146,13 @@ return [
     'config.advance_setting' => '進階設定',
     'config.advance_setting_desc' => '看著就很進階',
     'config.lang' => '主題語言',
-    'config.lang_desc' => '選擇主題顯示語言，留空則自動偵測瀏覽器語言',
+    'config.lang_desc' => '選擇主題顯示語言，留空則自動偵測瀏覽器語言（修改後會立即儲存並重新整理）',
+    'config.lang_saving' => '儲存中…',
+    'config.lang_saved' => '已儲存',
+    'config.lang_save_error' => '儲存失敗',
     'config.auto_detect' => '自動偵測',
+    'config.footer_custom' => '自訂底部內容',
+    'config.footer_custom_desc' => '每行一項，支援擴充 Markdown 語法：<br/>文字：<code>hello world</code><br/>連結：<code>[文字](https://...)</code><br/>圖片：<code>![alt](https://.../logo.png)</code><br/>圖片連結：<code>[![alt](src)](url)</code><br/>新分頁開啟：在末尾追加 <code>{newtab}</code>，如 <code>[文字](url){newtab}</code><br/>又拍雲聯盟圖示可直接寫：<code>{upyun}</code><br/>留空則使用舊版「底部左側 logo」與「又拍雲」開關。',
 
     // Common
     'common.enable' => '開啟',

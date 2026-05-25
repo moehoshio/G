@@ -5,7 +5,7 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
 <footer>
     <div id="footer-content">
         <div id="footer-sponsor">
-            <?php echo G::getFooterLogos(); ?>
+            <?php echo G::renderFooterCustom(); ?>
         </div>
         <nav id="footer-nav">
             <a href="<?php Helper::options()->siteUrl() ?>" <?php if ($this->is("index")) : ?> class="nav-focus"<?php endif; ?>><?php GI18n::e('nav.home'); ?></a>
@@ -19,7 +19,9 @@ $devTag = !defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ != true ? G::$versi
         </nav>
     </div>
     <p id="footer-meta" class="clear">
+        <?php if (trim(G::$config['footerCustom']) === ''): ?>
         <span class="left"><a class="icp" href="<?php $this->options->icpUrl(); ?>" rel="noopener noreferrer"><?php echo G::getICP(); ?></a></span>
+        <?php endif; ?>
         <span class="right"><?php echo $this->options->buildYear . " - " . date("Y"); ?> &copy <?php $this->options->title(); ?></span>
     </p>
 </footer>

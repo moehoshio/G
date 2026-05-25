@@ -1,45 +1,51 @@
-<?php if ($this->options->articleStyle == 0): ?>
-    <?php while ($this->next()): ?>
-        <div class="article-item">
-            <h2 class="article-title"><a href="<?php $this->permalink(); ?>"><?php $this->title() ?></a></h2>
-            <div class="article-data">
-                <span><?php $this->category(); ?></span>
-                <span><?php $this->date('Y-m-d'); ?></span>
-            </div>
-            <?php if (G::getArticleBanner($this) != 'none'): ?>
-                <div class="article-banner-wrap"></div>
-                <div style="background-image: url(<?php echo G::getArticleBanner($this); ?>);" class="article-banner"></div>
-            <?php endif; ?>
-        </div>
-    <?php endwhile; ?>
-<?php elseif ($this->options->articleStyle == 1): ?>
-    <?php while ($this->next()): ?>
-        <div class="article-item article-item-single" style="width: 100%;">
-            <?php if (G::getArticleBanner($this) != 'none'): ?>
-                <div style="background-image: url(<?php echo G::getArticleBanner($this); ?>);" class="article-banner article-banner-full"></div>
-            <?php endif; ?>
-            <h2 class="article-title"><a href="<?php $this->permalink(); ?>"><?php $this->title() ?></a></h2>
+<?php
+/**
+ * Homepage article list — unified layout.
+ *
+ * Visual layout is controlled by three independent options (set in the
+ * theme admin panel under "首页样式" / "Homepage Style"):
+ *   - articleColumns       (int >= 1)  Number of columns to display.  When
+ *                                      set to 1 the items render full-width
+ *                                      (the former "single column / 大图"
+ *                                      mode).
+ *   - showArticleBanner    (1/0)       Whether to render the post banner
+ *                                      image.  Banner is rendered full
+ *                                      width when columns == 1, and as a
+ *                                      decorative side image otherwise.
+ *   - showArticleExcerpt   (1/0)       Whether to render the post excerpt.
+ *
+ * The old fixed-choice picker (articleStyle: 0/1/2) has been removed.  The
+ * former "大图" card-style mode (articleStyle == 2) is gone; its visual
+ * role is now filled by the single-column mode (articleColumns == 1).
+ */
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+
+$columns = (int) $this->options->articleColumns;
+if ($columns < 1) $columns = 2;
+if ($columns > 6) $columns = 6;
+
+$showBanner  = ((string) $this->options->showArticleBanner) !== '0';
+$showExcerpt = ((string) $this->options->showArticleExcerpt) !== '0';
+
+$isSingle = ($columns === 1);
+?>
+<?php while ($this->next()): ?>
+    <div class="article-item<?php echo $isSingle ? ' article-item-single' : ''; ?>"<?php echo $isSingle ? ' style="width: 100%;"' : ''; ?>>
+        <?php $banner = $showBanner ? G::getArticleBanner($this) : 'none'; ?>
+        <?php if ($isSingle && $banner !== 'none'): ?>
+            <div style="background-image: url(<?php echo $banner; ?>);" class="article-banner article-banner-full"></div>
+        <?php endif; ?>
+        <h2 class="article-title"><a href="<?php $this->permalink(); ?>"><?php $this->title() ?></a></h2>
+        <?php if ($showExcerpt): ?>
             <p><?php $this->excerpt(50); ?></p>
-            <div class="article-data">
-                <span><?php $this->category(); ?></span>
-                <span><?php $this->date('Y-m-d'); ?></span>
-            </div>
+        <?php endif; ?>
+        <div class="article-data">
+            <span><?php $this->category(); ?></span>
+            <span><?php $this->date('Y-m-d'); ?></span>
         </div>
-    <?php endwhile; ?>
-<?php elseif ($this->options->articleStyle == 2): ?>
-    <?php while ($this->next()): ?>
-        <div class="card-item">
-            <article>
-                <div class="card-cover" style="background-image: url(<?php echo G::getArticleBanner($this); ?>)"></div>
-                <a class="card-item-link card-link" href="<?php $this->permalink() ?>" itemprop="url"></a>
-                <h2 class="card-item-title"><?php $this->title() ?></h2>
-                <div class="card-item-meta">
-                    <div class="card-item-category">
-                        <a class="card-item-category-link"><?php $this->category(',', false); ?></a>
-                        <a class="card-item-date"><?php echo G::getSemanticDate($this->created); ?></a>
-                    </div>
-                </div>
-            </article>
-        </div>
-    <?php endwhile; ?>
-<?php endif; ?>
+        <?php if (!$isSingle && $banner !== 'none'): ?>
+            <div class="article-banner-wrap"></div>
+            <div style="background-image: url(<?php echo $banner; ?>);" class="article-banner"></div>
+        <?php endif; ?>
+    </div>
+<?php endwhile; ?>

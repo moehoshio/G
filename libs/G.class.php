@@ -43,6 +43,10 @@ class G
         'autoNightSpan' => '',
         'autoNightMode' => '',
         'commentType' => '',
+        'enableLegacy' => '',
+        'articleColumns' => '',
+        'showArticleBanner' => '',
+        'showArticleExcerpt' => '',
     ];
 
     public static $advanceConfig = [];
@@ -512,6 +516,12 @@ class G
      */
     public static function getFooterLogos()
     {
+        // Legacy footer assets (UPYUN affiliate badge + footerLOGO images) are
+        // only rendered when the "legacy options" master switch is enabled.
+        // Without it, the new custom-footer feature is the canonical way to
+        // configure footer content.
+        if (empty(self::$config['enableLegacy']))
+            return '';
         if (self::$config['enableUPYUNLOGO'] == 1)
             $logos = '<a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral"><img alt="upyun" src="' . self::staticUrl('static/img/upyun.png') . '"/></a>';
         else

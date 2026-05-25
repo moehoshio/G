@@ -541,6 +541,7 @@ class G
      *   - 图片链接：         [![alt](src)](url)
      *   - 新页面打开扩展：   在 ](url) 之后追加 {newtab} 或 {_blank}
      *   - 内置 token：       {upyun}（又拍云联盟 logo + 链接，会被首先展开）
+     *   - 佔位空白：         {air} 或 {air:N}（产生 N 个空白佔位元素）
      *   - 网格定位：         在行尾追加 {cell:r,c} 或 {cell:r,c,rs,cs}
      *                        （仅在使用 {grid:...} 容器指令时生效）
      *
@@ -590,6 +591,19 @@ class G
      */
     private static function renderFooterCustomInner($line)
     {
+        // 内置 token: {air} — 空白佔位元素
+        if (preg_match('/^\{air(?::(\d+))?\}$/i', $line, $am)) {
+            $size = isset($am[1]) && $am[1] !== '' ? max(1, (int)$am[1]) : 1;
+            if ($size === 1) {
+                return '<span class="footer-air"></span>';
+            }
+            $html = '';
+            for ($i = 0; $i < $size; $i++) {
+                $html .= '<span class="footer-air"></span>';
+            }
+            return $html;
+        }
+
         // 内置 token: {upyun}
         if ($line === '{upyun}') {
             return '<a href="https://www.upyun.com/?utm_source=lianmeng&utm_medium=referral" rel="noopener noreferrer" target="_blank">'

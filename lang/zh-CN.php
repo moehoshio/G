@@ -160,7 +160,7 @@ return [
     'config.lang_save_error' => '保存失败',
     'config.auto_detect' => '自动检测',
     'config.footer_custom' => '自定义底部内容',
-    'config.footer_custom_desc' => '每行一项，支持扩展 Markdown 语法：<br/>文本：<code>hello world</code><br/>链接：<code>[文本](https://...)</code><br/>图片：<code>![alt](https://.../logo.png)</code><br/>图片链接：<code>[![alt](src)](url)</code><br/>新页面打开：在末尾追加 <code>{newtab}</code>，如 <code>[文本](url){newtab}</code><br/>又拍云联盟图标可直接写：<code>{upyun}</code><br/><br/><b>网格佈局：</b>在任意位置加一行 <code>{grid:cols=3}</code> 或 <code>{grid:cols=3,rows=2}</code>，之后的所有项目会按 N 列网格自适应排列。<br/>对单项指定位置：在行尾加 <code>{cell:行,列}</code> 或带跨度 <code>{cell:行,列,行跨,列跨}</code>，例 <code>[关于](/about){cell:1,3}</code>。未指定位置的项目会自动填充剩余格子（含空行/空列）。<br/><br/>留空则使用旧版「底部左侧 logo」与「又拍云」开关（需先开启「启用旧版选项」）。',
+    'config.footer_custom_desc' => '每行一项，支持扩展 Markdown 语法：<br/>文本：<code>hello world</code><br/>链接：<code>[文本](https://...)</code><br/>图片：<code>![alt](https://.../logo.png)</code><br/>图片链接：<code>[![alt](src)](url)</code><br/>新页面打开：在末尾追加 <code>{newtab}</code>，如 <code>[文本](url){newtab}</code><br/>又拍云联盟图标可直接写：<code>{upyun}</code><br/>占位空白：<code>{air}</code>，或 <code>{air:N}</code> 产生 N 个空位<br/><br/><b>网格佈局：</b>在任意位置加一行 <code>{grid:cols=3}</code> 或 <code>{grid:cols=3,rows=2}</code>，之后的所有项目会按 N 列网格自适应排列。<br/>对单项指定位置：在行尾加 <code>{cell:行,列}</code> 或带跨度 <code>{cell:行,列,行跨,列跨}</code>，例 <code>[关于](/about){cell:1,3}</code>。未指定位置的项目会自动填充剩余格子（含空行/空列）。<br/><br/>留空则使用旧版「底部左侧 logo」与「又拍云」开关（需先开启「启用旧版选项」）。',
 
     // Admin settings sectioning
     'section.toc_title'   => '设置目录',

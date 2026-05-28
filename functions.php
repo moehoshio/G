@@ -78,106 +78,351 @@ Typecho_Plugin::factory('admin/write-post.php')->bottom = array('GEditor', 'word
 Typecho_Plugin::factory('admin/write-page.php')->bottom = array('GEditor', 'wordCounter');
 
 /**
- * 是否存在备份
+ * 取得备份记录行（包含 name/value）。
+ * 若不存在则返回 null。
  */
-function hasBackup($db) {
-    return $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:'.G::$themeBackup));
+function gGetBackupRow($db) {
+    $row = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:'.G::$themeBackup));
+    return $row ?: null;
 }
 
 /**
- * 备份完成提示
+ * 读取所有备份。统一返回格式：
+ *   [ ['id'=>..., 'note'=>..., 'created_at'=>..., 'updated_at'=>..., 'data'=>serialized config], ... ]
+ * 自动迁移旧格式（单一 raw 序列化配置）。
  */
-function backupNotice($msg, $refresh = true) {
+function gLoadBackups($db) {
+    $row = gGetBackupRow($db);
+    if (!$row) return [];
+
+    $raw = $row['value'];
+    // 新格式：序列化的 wrapper 数组，含 'version' 与 'backups' 键。
+    $decoded = @unserialize($raw, ['allowed_classes' => false]);
+    if (is_array($decoded) && isset($decoded['version'], $decoded['backups']) && is_array($decoded['backups'])) {
+        return $decoded['backups'];
+    }
+
+    // 旧格式：原始 theme:G 序列化配置数组。迁移成单条备份。
+    if (is_array($decoded)) {
+        return [[
+            'id'         => 'legacy',
+            'note'       => GI18n::t('backup.legacy_note'),
+            'created_at' => isset($row['user']) && is_numeric($row['user']) ? 0 : 0,
+            'updated_at' => 0,
+            'data'       => $raw,
+        ]];
+    }
+
+    return [];
+}
+
+/**
+ * 写回备份列表到数据库。
+ */
+function gSaveBackups($db, array $backups) {
+    $payload = serialize([
+        'version' => 2,
+        'backups' => array_values($backups),
+    ]);
+    $exists = gGetBackupRow($db);
+    if ($exists) {
+        $db->query($db->update('table.options')
+            ->rows(['value' => $payload])
+            ->where('name = ?', 'theme:'.G::$themeBackup));
+    } else {
+        $db->query($db->insert('table.options')
+            ->rows(['name' => 'theme:'.G::$themeBackup, 'user' => '0', 'value' => $payload]));
+    }
+}
+
+/**
+ * 在备份列表中根据 id 查找，找不到则返回 null。
+ */
+function gFindBackup(array $backups, $id) {
+    foreach ($backups as $b) {
+        if (isset($b['id']) && (string)$b['id'] === (string)$id) return $b;
+    }
+    return null;
+}
+
+/**
+ * 生成一个 backup id。
+ */
+function gNewBackupId() {
+    return 'bk_'.dechex(time()).'_'.substr(bin2hex(random_bytes(3)), 0, 6);
+}
+
+/**
+ * 清理用户输入的备注。
+ */
+function gSanitizeNote($note) {
+    $note = is_string($note) ? trim($note) : '';
+    // 去除控制字符，限制长度。
+    $note = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $note);
+    if (function_exists('mb_substr')) {
+        $note = mb_substr($note, 0, 200, 'UTF-8');
+    } else {
+        $note = substr($note, 0, 200);
+    }
+    return $note;
+}
+
+/**
+ * 备份完成提示。$refresh 为 true 时自动刷新，
+ * $extraHtml 用于显示额外的（已转义）HTML，比如缺失键列表。
+ */
+function backupNotice($msg, $refresh = true, $extraHtml = '') {
     $content = $msg.''.($refresh ? GI18n::t('backup.auto_refresh') : '');
     if ($refresh) {
         $url = Helper::options()->adminUrl.'options-theme.php';
         $content .= '
-            <a href="'.$url.'">'.GI18n::t('backup.manual_refresh').'</a>
+            <a href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'">'.GI18n::t('backup.manual_refresh').'</a>
             <script language="JavaScript">window.setTimeout("location=\''.$url.'\'", 2500);</script>
         ';
+    }
+    if ($extraHtml !== '') {
+        $content .= $extraHtml;
     }
 
     echo '<div class="backup-notice">'.$content.'</div>';
 }
 
 /**
- * 备份操作
+ * 创建新备份。
  */
-function makeBackup($db, $hasBackup) {
-    $currentConfig = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'))['value'];
-    $query = $hasBackup
-        ? $db->update('table.options')->rows(array('value' => $currentConfig))->where('name = ?', 'theme:'.G::$themeBackup)
-        : $db->insert('table.options')->rows(array('name' => 'theme:'.G::$themeBackup, 'user' => '0', 'value' => $currentConfig));
-    
-    $rows = $db->query($query);
-    
-    return ['msg' => $hasBackup ? GI18n::t('backup.updated') : GI18n::t('backup.created'), 'refresh' => true];
+function makeBackup($db, $note = '') {
+    $currentRow = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'));
+    if (!$currentRow) {
+        return ['msg' => GI18n::t('backup.no_current_config'), 'refresh' => false];
+    }
+    $now = time();
+    $backups = gLoadBackups($db);
+    $backups[] = [
+        'id'         => gNewBackupId(),
+        'note'       => gSanitizeNote($note),
+        'created_at' => $now,
+        'updated_at' => $now,
+        'data'       => $currentRow['value'],
+    ];
+    gSaveBackups($db, $backups);
+    return ['msg' => GI18n::t('backup.created'), 'refresh' => true];
 }
 
 /**
- * 恢复备份
+ * 用当前配置覆盖某条已有备份。
  */
-function restoreBackup($db, $hasBackup) {
-    if (!$hasBackup) 
+function updateBackup($db, $id) {
+    $backups = gLoadBackups($db);
+    $found = false;
+    foreach ($backups as &$b) {
+        if ((string)$b['id'] === (string)$id) {
+            $currentRow = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'));
+            if (!$currentRow) {
+                return ['msg' => GI18n::t('backup.no_current_config'), 'refresh' => false];
+            }
+            $b['data']       = $currentRow['value'];
+            $b['updated_at'] = time();
+            $found = true;
+            break;
+        }
+    }
+    unset($b);
+    if (!$found) return ['msg' => GI18n::t('backup.not_found'), 'refresh' => false];
+    gSaveBackups($db, $backups);
+    return ['msg' => GI18n::t('backup.updated'), 'refresh' => true];
+}
+
+/**
+ * 修改某条备份的备注。
+ */
+function editBackupNote($db, $id, $note) {
+    $backups = gLoadBackups($db);
+    $found = false;
+    foreach ($backups as &$b) {
+        if ((string)$b['id'] === (string)$id) {
+            $b['note']       = gSanitizeNote($note);
+            $b['updated_at'] = time();
+            $found = true;
+            break;
+        }
+    }
+    unset($b);
+    if (!$found) return ['msg' => GI18n::t('backup.not_found'), 'refresh' => false];
+    gSaveBackups($db, $backups);
+    return ['msg' => GI18n::t('backup.note_saved'), 'refresh' => true];
+}
+
+/**
+ * 恢复指定 id 的备份。会保留当前 theme:G 中存在、但备份中不存在的键，
+ * 以避免主题升级后新增的配置在还原后丢失。返回的 extra 字段列出了被保留的键。
+ */
+function restoreBackup($db, $id) {
+    $backups = gLoadBackups($db);
+    if (empty($backups)) {
         return ['msg' => GI18n::t('backup.no_data_restore'), 'refresh' => false];
-    
-    $backupConfig = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:'.G::$themeBackup))['value'];
-    $update = $db->update('table.options')->rows(array('value' => $backupConfig))->where('name = ?', 'theme:G');
-    $updateRows = $db->query($update);
+    }
+    $target = gFindBackup($backups, $id);
+    if (!$target) {
+        return ['msg' => GI18n::t('backup.not_found'), 'refresh' => false];
+    }
 
-    return ['msg' => GI18n::t('backup.restored'), 'refresh' => true];
+    $currentRow = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'));
+    $current    = $currentRow ? @unserialize($currentRow['value'], ['allowed_classes' => false]) : [];
+    if (!is_array($current)) $current = [];
+    $backupData = @unserialize($target['data'], ['allowed_classes' => false]);
+    if (!is_array($backupData)) {
+        return ['msg' => GI18n::t('backup.no_data_restore'), 'refresh' => false];
+    }
+
+    // 合并：备份中存在的键全部用备份值；当前存在但备份中缺失的键保留当前值。
+    $missing = array_diff(array_keys($current), array_keys($backupData));
+    $merged  = array_merge($current, $backupData);
+
+    $db->query($db->update('table.options')
+        ->rows(['value' => serialize($merged)])
+        ->where('name = ?', 'theme:G'));
+
+    $extra = '';
+    if (!empty($missing)) {
+        $escaped = array_map(function ($k) {
+            return htmlspecialchars((string)$k, ENT_QUOTES, 'UTF-8');
+        }, $missing);
+        $extra = '<div class="backup-missing-keys"><strong>'
+               . htmlspecialchars(GI18n::t('backup.missing_keys_notice'), ENT_QUOTES, 'UTF-8')
+               . '</strong> <code>'
+               . implode('</code>, <code>', $escaped)
+               . '</code></div>';
+    }
+
+    return ['msg' => GI18n::t('backup.restored'), 'refresh' => true, 'extra' => $extra];
 }
 
 /**
- * 删除备份
+ * 删除指定 id 的备份。
  */
-function deleteBackup($db, $hasBackup) {
-    if (!$hasBackup) 
+function deleteBackup($db, $id) {
+    $backups = gLoadBackups($db);
+    if (empty($backups)) {
         return ['msg' => GI18n::t('backup.no_data_delete'), 'refresh' => false];
+    }
+    $remain = [];
+    $found  = false;
+    foreach ($backups as $b) {
+        if ((string)$b['id'] === (string)$id) { $found = true; continue; }
+        $remain[] = $b;
+    }
+    if (!$found) return ['msg' => GI18n::t('backup.not_found'), 'refresh' => false];
 
-    $delete = $db->delete('table.options')->where('name = ?', 'theme:'.G::$themeBackup);
-    $deletedRows = $db->query($delete);
-    
+    if (empty($remain)) {
+        $db->query($db->delete('table.options')->where('name = ?', 'theme:'.G::$themeBackup));
+    } else {
+        gSaveBackups($db, $remain);
+    }
     return ['msg' => GI18n::t('backup.deleted'), 'refresh' => true];
 }
 
 /**
- * 备份主方法
+ * 备份主方法。
  */
 function backup() {
     $db = Typecho_Db::get();
-    $hasBackup = hasBackup($db);
-    if (isset($_POST['type'])) {
-        $result = [];
-        switch($_POST['type']) {
-            case GI18n::t('backup.create'):
-            case GI18n::t('backup.update'):
-                $result = makeBackup($db, $hasBackup);
+
+    if (isset($_POST['action'])) {
+        $action = (string)$_POST['action'];
+        $id     = isset($_POST['id']) ? (string)$_POST['id'] : '';
+        $note   = isset($_POST['note']) ? (string)$_POST['note'] : '';
+        $result = ['msg' => '', 'refresh' => false];
+        switch ($action) {
+            case 'create':
+                $result = makeBackup($db, $note);
                 break;
-            case GI18n::t('backup.restore'):
-                $result = restoreBackup($db, $hasBackup);
+            case 'update':
+                if ($id !== '') $result = updateBackup($db, $id);
                 break;
-            case GI18n::t('backup.delete'):
-                $result = deleteBackup($db, $hasBackup);
+            case 'restore':
+                if ($id !== '') $result = restoreBackup($db, $id);
                 break;
-            default:
-                $result = ["msg" => "", "refresh" => false];
+            case 'delete':
+                if ($id !== '') $result = deleteBackup($db, $id);
+                break;
+            case 'edit_note':
+                if ($id !== '') $result = editBackupNote($db, $id, $note);
                 break;
         }
-        if ($result["msg"])
-            backupNotice($result["msg"], $result["refresh"]);
+        if (!empty($result['msg'])) {
+            backupNotice($result['msg'], $result['refresh'], isset($result['extra']) ? $result['extra'] : '');
+        }
     }
-    echo '
-        <div id="backup">
-            <form class="protected Data-backup" action="?'.G::$themeBackup.'" method="post">
-                <h4>'.GI18n::t('backup.title').'</h4>
-                <p style="opacity: 0.5">'.($hasBackup ? GI18n::t('backup.has_backup') : GI18n::t('backup.no_backup')).GI18n::t('backup.choose').'</p>
-                <input type="submit" name="type" class="btn btn-s" value="'.($hasBackup ? GI18n::t('backup.update') : GI18n::t('backup.create')).'" />&nbsp;&nbsp;
-                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="'.GI18n::t('backup.restore').'" />&nbsp;&nbsp;' : '').'
-                '.($hasBackup ? '<input type="submit" name="type" class="btn btn-s" value="'.GI18n::t('backup.delete').'" />' : '').'
-            </form>
-        </div>
-    ';
+
+    $backups   = gLoadBackups($db);
+    $hasAny    = !empty($backups);
+    $actionUrl = '?'.G::$themeBackup;
+    $fmt       = 'Y-m-d H:i';
+
+    echo '<div id="backup">';
+    echo '<h4>'.htmlspecialchars(GI18n::t('backup.title'), ENT_QUOTES, 'UTF-8').'</h4>';
+    echo '<p style="opacity: 0.5">'
+        .htmlspecialchars(($hasAny ? GI18n::t('backup.has_backup') : GI18n::t('backup.no_backup')), ENT_QUOTES, 'UTF-8')
+        .'</p>';
+
+    if ($hasAny) {
+        echo '<table class="backup-list" style="width:100%;border-collapse:collapse;margin-bottom:14px;">';
+        echo '<thead><tr>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e3e3e3;">'.htmlspecialchars(GI18n::t('backup.col_note'), ENT_QUOTES, 'UTF-8').'</th>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e3e3e3;">'.htmlspecialchars(GI18n::t('backup.col_created'), ENT_QUOTES, 'UTF-8').'</th>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e3e3e3;">'.htmlspecialchars(GI18n::t('backup.col_updated'), ENT_QUOTES, 'UTF-8').'</th>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e3e3e3;">'.htmlspecialchars(GI18n::t('backup.col_actions'), ENT_QUOTES, 'UTF-8').'</th>'
+            .'</tr></thead><tbody>';
+        // 按 created_at 倒序显示。
+        usort($backups, function ($a, $b) {
+            $ai = isset($a['created_at']) ? (int)$a['created_at'] : 0;
+            $bi = isset($b['created_at']) ? (int)$b['created_at'] : 0;
+            if ($ai === $bi) return 0;
+            return $ai < $bi ? 1 : -1;
+        });
+        foreach ($backups as $b) {
+            $id       = htmlspecialchars((string)$b['id'], ENT_QUOTES, 'UTF-8');
+            $note     = htmlspecialchars(isset($b['note']) ? (string)$b['note'] : '', ENT_QUOTES, 'UTF-8');
+            $created  = !empty($b['created_at']) ? date($fmt, (int)$b['created_at']) : '-';
+            $updated  = !empty($b['updated_at']) ? date($fmt, (int)$b['updated_at']) : '-';
+            $confirmRestore = htmlspecialchars(GI18n::t('backup.confirm_restore'), ENT_QUOTES, 'UTF-8');
+            $confirmDelete  = htmlspecialchars(GI18n::t('backup.confirm_delete'), ENT_QUOTES, 'UTF-8');
+            $confirmUpdate  = htmlspecialchars(GI18n::t('backup.confirm_update'), ENT_QUOTES, 'UTF-8');
+            echo '<tr>';
+            echo '<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;">';
+            echo '<form class="protected" action="'.$actionUrl.'" method="post" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">';
+            echo '<input type="hidden" name="action" value="edit_note" />';
+            echo '<input type="hidden" name="id" value="'.$id.'" />';
+            echo '<input type="text" name="note" value="'.$note.'" maxlength="200" style="flex:1;min-width:160px;" placeholder="'.htmlspecialchars(GI18n::t('backup.note_placeholder'), ENT_QUOTES, 'UTF-8').'" />';
+            echo '<button type="submit" class="btn btn-xs">'.htmlspecialchars(GI18n::t('backup.save_note'), ENT_QUOTES, 'UTF-8').'</button>';
+            echo '</form>';
+            echo '<div style="opacity:0.5;font-size:11px;margin-top:2px;">ID: '.$id.'</div>';
+            echo '</td>';
+            echo '<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;white-space:nowrap;">'.htmlspecialchars($created, ENT_QUOTES, 'UTF-8').'</td>';
+            echo '<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;white-space:nowrap;">'.htmlspecialchars($updated, ENT_QUOTES, 'UTF-8').'</td>';
+            echo '<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;white-space:nowrap;">';
+            echo '<form class="protected" action="'.$actionUrl.'" method="post" style="display:inline;" onsubmit="return confirm(\''.$confirmRestore.'\');">'
+                .'<input type="hidden" name="action" value="restore" /><input type="hidden" name="id" value="'.$id.'" />'
+                .'<button type="submit" class="btn btn-xs">'.htmlspecialchars(GI18n::t('backup.restore'), ENT_QUOTES, 'UTF-8').'</button></form> ';
+            echo '<form class="protected" action="'.$actionUrl.'" method="post" style="display:inline;" onsubmit="return confirm(\''.$confirmUpdate.'\');">'
+                .'<input type="hidden" name="action" value="update" /><input type="hidden" name="id" value="'.$id.'" />'
+                .'<button type="submit" class="btn btn-xs">'.htmlspecialchars(GI18n::t('backup.update'), ENT_QUOTES, 'UTF-8').'</button></form> ';
+            echo '<form class="protected" action="'.$actionUrl.'" method="post" style="display:inline;" onsubmit="return confirm(\''.$confirmDelete.'\');">'
+                .'<input type="hidden" name="action" value="delete" /><input type="hidden" name="id" value="'.$id.'" />'
+                .'<button type="submit" class="btn btn-xs">'.htmlspecialchars(GI18n::t('backup.delete'), ENT_QUOTES, 'UTF-8').'</button></form>';
+            echo '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+    }
+
+    echo '<form class="protected Data-backup" action="'.$actionUrl.'" method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+    echo '<input type="hidden" name="action" value="create" />';
+    echo '<input type="text" name="note" maxlength="200" placeholder="'.htmlspecialchars(GI18n::t('backup.note_placeholder'), ENT_QUOTES, 'UTF-8').'" style="flex:1;min-width:200px;" />';
+    echo '<button type="submit" class="btn btn-s">'.htmlspecialchars(GI18n::t('backup.create'), ENT_QUOTES, 'UTF-8').'</button>';
+    echo '</form>';
+
+    echo '</div>';
 }
 
 /**

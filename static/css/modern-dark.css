@@ -175,3 +175,47 @@ html::-webkit-scrollbar-thumb {
     background: #2c2a2a;
     color: #ddd;
 }
+
+/* ===== Modern Link Page - Dark Mode ===== */
+#link-modern .modern-link-card {
+    background: rgba(30, 32, 44, 0.55);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+#link-modern .modern-link-name {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+#link-modern .modern-link-description {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+#link-modern .modern-link-avatar {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+#link-modern .modern-link-empty {
+    background: rgba(30, 32, 44, 0.55);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#link-modern .modern-link-section-title {
+    color: rgba(255, 255, 255, 0.92);
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+#link-modern .modern-link-section-count {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#link-modern .modern-link-section.is-todo .modern-link-section-count {
+    color: #fbbf24;
+    background: rgba(234, 179, 8, 0.18);
+}
+
+#link-modern .modern-link-section.is-lost .modern-link-section-count {
+    color: #f87171;
+    background: rgba(245, 87, 108, 0.18);
+}

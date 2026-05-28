@@ -272,6 +272,26 @@ $this->need('components/header.php');
         opacity: 1;
     }
 
+    /* ===== Todo / 待辦星球 section ===== */
+    #link-modern .modern-link-section.is-todo .modern-link-section-title {
+        border-bottom-color: rgba(234, 179, 8, 0.35);
+    }
+
+    #link-modern .modern-link-section.is-todo .modern-link-section-count {
+        background: rgba(234, 179, 8, 0.15);
+        color: #b45309;
+    }
+
+    #link-modern .modern-link-section.is-todo .modern-link-card {
+        filter: saturate(0.7);
+        opacity: 0.88;
+    }
+
+    #link-modern .modern-link-section.is-todo .modern-link-card:hover {
+        filter: saturate(1);
+        opacity: 1;
+    }
+
     /* ===== Card Grid ===== */
     #link-modern .modern-link-grid {
         display: grid;
@@ -410,46 +430,7 @@ $this->need('components/header.php');
         color: rgba(0, 0, 0, 0.6);
     }
 
-    /* ===== Dark mode ===== */
-    html[data-theme="dark"] #link-modern .modern-link-card,
-    .dark #link-modern .modern-link-card {
-        background: rgba(30, 32, 44, 0.55);
-        border-color: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-name,
-    .dark #link-modern .modern-link-name {
-        color: rgba(255, 255, 255, 0.92);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-description,
-    .dark #link-modern .modern-link-description {
-        color: rgba(255, 255, 255, 0.65);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-avatar,
-    .dark #link-modern .modern-link-avatar {
-        border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-empty,
-    .dark #link-modern .modern-link-empty {
-        background: rgba(30, 32, 44, 0.55);
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-section-title,
-    .dark #link-modern .modern-link-section-title {
-        color: rgba(255, 255, 255, 0.92);
-        border-bottom-color: rgba(255, 255, 255, 0.12);
-    }
-
-    html[data-theme="dark"] #link-modern .modern-link-section-count,
-    .dark #link-modern .modern-link-section-count {
-        color: rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.08);
-    }
+    /* ===== Dark mode — handled by modern-dark.css (alternate stylesheet) ===== */
 
     /* ===== Responsive ===== */
     @media (max-width: 600px) {
@@ -530,6 +511,15 @@ $this->need('components/header.php');
     (function () {
         var STORAGE_KEY = 'modernLinkGrouped';
         var LOST_PATTERN = /失\s*[联聯]|lost|offline|broken|下\s*[线線]|dead/i;
+        var TODO_PATTERN = /待\s*[办辦]|todo|pending|問題|问题/i;
+        // Category priority: prefix format "number|name" e.g. "1|好友" → priority 1, display "好友"
+        var PRIORITY_RE = /^(\d+)\|(.+)$/;
+
+        function parseSortKey(raw) {
+            var m = raw.match(PRIORITY_RE);
+            if (m) return { priority: parseInt(m[1], 10), display: m[2].trim() };
+            return { priority: Infinity, display: raw };
+        }
 
         function init() {
             var grid = document.getElementById('modernLinkGrid');
@@ -546,24 +536,38 @@ $this->need('components/header.php');
             // Group by sort name.
             var groupsMap = {};
             var groupOrder = [];
+            var groupMeta = {}; // key → { priority, display }
             var lostCards = [];
+            var todoCards = [];
             cards.forEach(function (card) {
                 var sort = (card.getAttribute('data-sort') || '').trim();
                 if (sort && LOST_PATTERN.test(sort)) {
                     lostCards.push(card);
                     return;
                 }
+                if (sort && TODO_PATTERN.test(sort)) {
+                    todoCards.push(card);
+                    return;
+                }
+                var parsed = parseSortKey(sort);
                 var key = sort || '__uncategorized__';
                 if (!groupsMap[key]) {
                     groupsMap[key] = [];
                     groupOrder.push(key);
+                    groupMeta[key] = parsed;
                 }
                 groupsMap[key].push(card);
+            });
+
+            // Sort categories by priority (lower number = higher priority).
+            groupOrder.sort(function (a, b) {
+                return (groupMeta[a] || {priority: Infinity}).priority - (groupMeta[b] || {priority: Infinity}).priority;
             });
 
             var hasCategories = groupOrder.length > 1
                 || (groupOrder.length === 1 && groupOrder[0] !== '__uncategorized__');
             var hasLost = lostCards.length > 0;
+            var hasTodo = todoCards.length > 0;
 
             // Show toolbar only when there is something to toggle.
             if (hasCategories) {
@@ -589,16 +593,22 @@ $this->need('components/header.php');
             }
 
             function renderFlat() {
-                // Restore original flat layout, lost links appended at end.
+                // Restore original flat layout, lost/todo links appended at end.
                 grid.innerHTML = '';
                 // Remove any previously rendered sections after the grid.
                 removeRenderedSections();
                 originalOrder.forEach(function (c) {
-                    if (lostCards.indexOf(c) === -1) grid.appendChild(c);
+                    if (lostCards.indexOf(c) === -1 && todoCards.indexOf(c) === -1) grid.appendChild(c);
                 });
+                var insertRef = grid.nextSibling;
                 if (hasLost) {
                     var lostSection = buildSection('失聯星球', lostCards, 'is-lost modern-link-rendered-section');
-                    grid.parentNode.insertBefore(lostSection, grid.nextSibling);
+                    grid.parentNode.insertBefore(lostSection, insertRef);
+                    insertRef = lostSection;
+                }
+                if (hasTodo) {
+                    var todoSection = buildSection('待辦星球', todoCards, 'is-todo modern-link-rendered-section');
+                    grid.parentNode.insertBefore(todoSection, insertRef);
                 }
             }
 
@@ -606,14 +616,24 @@ $this->need('components/header.php');
                 removeRenderedSections();
                 grid.innerHTML = '';
                 grid.style.display = 'none';
-                groupOrder.forEach(function (key) {
-                    var title = key === '__uncategorized__' ? '未分類' : key;
-                    var section = buildSection(title, groupsMap[key], 'modern-link-rendered-section');
-                    grid.parentNode.insertBefore(section, grid.nextSibling);
-                });
+                // Insert in reverse order so that the first category ends up on top.
+                var insertRef = grid.nextSibling;
                 if (hasLost) {
                     var lostSection = buildSection('失聯星球', lostCards, 'is-lost modern-link-rendered-section');
-                    grid.parentNode.insertBefore(lostSection, grid.nextSibling);
+                    grid.parentNode.insertBefore(lostSection, insertRef);
+                    insertRef = lostSection;
+                }
+                if (hasTodo) {
+                    var todoSection = buildSection('待辦星球', todoCards, 'is-todo modern-link-rendered-section');
+                    grid.parentNode.insertBefore(todoSection, insertRef);
+                    insertRef = todoSection;
+                }
+                for (var i = groupOrder.length - 1; i >= 0; i--) {
+                    var key = groupOrder[i];
+                    var title = key === '__uncategorized__' ? '未分類' : (groupMeta[key] ? groupMeta[key].display : key);
+                    var section = buildSection(title, groupsMap[key], 'modern-link-rendered-section');
+                    grid.parentNode.insertBefore(section, insertRef);
+                    insertRef = section;
                 }
             }
 

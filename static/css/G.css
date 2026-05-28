@@ -477,6 +477,9 @@ footer p {
 #footer-side #footer-meta {
   margin-top: 8px;
 }
+#footer-side #footer-meta a {
+  color: inherit;
+}
 #footer-nav {
   text-align: right;
 }

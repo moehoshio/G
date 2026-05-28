@@ -56,18 +56,68 @@ if (isset($_GET['GLangChange']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(404);
         exit('no-config');
     }
-    $value = @unserialize($row['value'], ['allowed_classes' => false]);
-    if (!is_array($value)) $value = array();
+    // Typecho 1.2+ stores theme options as JSON; older installs use PHP serialize.
+    // Decode with a format-aware helper and, crucially, abort instead of overwriting
+    // with an empty array when decoding fails — otherwise a single language change
+    // would wipe every other field in theme:G.
+    $format = gOptionFormat($row['value']);
+    $value  = gOptionDecode($row['value']);
+    if (!is_array($value)) {
+        http_response_code(500);
+        exit('decode-error');
+    }
     $value['lang'] = $newLang;
     $db->query(
         $db->update('table.options')
-           ->rows(array('value' => serialize($value)))
+           ->rows(array('value' => gOptionEncode($value, $format)))
            ->where('name = ?', 'theme:G')
     );
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(array('ok' => true, 'lang' => $newLang));
     exit;
+}
+
+/**
+ * Detect the storage format of a Typecho option string.
+ *
+ * Mirrors Typecho 1.2+'s Widget\Options::tryDeserialize: values starting
+ * with `a:` or equal to `b:0;` are PHP-serialised; everything else is JSON.
+ * Modern Typecho writes JSON; legacy installs still hold serialised data.
+ *
+ * Returns 'serialize' or 'json'.
+ */
+function gOptionFormat($raw) {
+    if (is_string($raw) && (strpos($raw, 'a:') === 0 || $raw === 'b:0;')) {
+        return 'serialize';
+    }
+    return 'json';
+}
+
+/**
+ * Decode a Typecho option string in either format. Returns null on failure
+ * (callers MUST NOT silently substitute an empty array — doing so would
+ * overwrite the existing options with nothing on the next save).
+ */
+function gOptionDecode($raw) {
+    if (!is_string($raw) || $raw === '') return null;
+    if (gOptionFormat($raw) === 'serialize') {
+        $v = @unserialize($raw, ['allowed_classes' => false]);
+        return is_array($v) ? $v : null;
+    }
+    $v = json_decode($raw, true);
+    return is_array($v) ? $v : null;
+}
+
+/**
+ * Encode a Typecho option array. Prefer the original storage format so we
+ * don't gratuitously rewrite a JSON row as PHP serialize (or vice versa).
+ * Typecho can read either via tryDeserialize, but staying consistent makes
+ * the database easier to inspect.
+ */
+function gOptionEncode(array $arr, $format = 'json') {
+    if ($format === 'serialize') return serialize($arr);
+    return json_encode($arr, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
 Typecho_Plugin::factory('Widget_Abstract_Contents')->excerptEx = array('GEditor', 'reply2see');
@@ -102,12 +152,16 @@ function gLoadBackups($db) {
         return $decoded['backups'];
     }
 
-    // 旧格式：原始 theme:G 序列化配置数组。迁移成单条备份。
+    // 旧格式：theme:Gbf 直接存放 theme:G 的原始 value（可能是 PHP serialize，
+    // 也可能是 Typecho 1.2+ 的 JSON）。两种都要识别并迁移成单条备份。
+    if (!is_array($decoded)) {
+        $decoded = gOptionDecode($raw); // 尝试 JSON 解码
+    }
     if (is_array($decoded)) {
         return [[
             'id'         => 'legacy',
             'note'       => GI18n::t('backup.legacy_note'),
-            'created_at' => isset($row['user']) && is_numeric($row['user']) ? 0 : 0,
+            'created_at' => 0,
             'updated_at' => 0,
             'data'       => $raw,
         ]];
@@ -267,9 +321,13 @@ function restoreBackup($db, $id) {
     }
 
     $currentRow = $db->fetchRow($db->select()->from('table.options')->where('name = ?', 'theme:G'));
-    $current    = $currentRow ? @unserialize($currentRow['value'], ['allowed_classes' => false]) : [];
+    // 用与 Typecho 相同的格式探测来解码当前配置与备份数据，
+    // 否则在 Typecho 1.2+ (JSON 存储) 下 unserialize 总是返回 false，
+    // 会被误判为「备份数据为空」，restore 直接失败。
+    $currentFormat = $currentRow ? gOptionFormat($currentRow['value']) : 'json';
+    $current       = $currentRow ? gOptionDecode($currentRow['value']) : [];
     if (!is_array($current)) $current = [];
-    $backupData = @unserialize($target['data'], ['allowed_classes' => false]);
+    $backupData = gOptionDecode($target['data']);
     if (!is_array($backupData)) {
         return ['msg' => GI18n::t('backup.no_data_restore'), 'refresh' => false];
     }
@@ -279,7 +337,7 @@ function restoreBackup($db, $id) {
     $merged  = array_merge($current, $backupData);
 
     $db->query($db->update('table.options')
-        ->rows(['value' => serialize($merged)])
+        ->rows(['value' => gOptionEncode($merged, $currentFormat)])
         ->where('name = ?', 'theme:G'));
 
     $extra = '';
